@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Save, Edit2, User, Phone, Mail, Calendar, Briefcase, FileText, Tag, DollarSign, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { CRMEntry } from '../../types';
 import { getStatusStyles, formatDate, getFollowUpColor, formatMoney } from '../../utils';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
 
 interface CRMFormProps {
   isOpen: boolean;
@@ -360,14 +362,20 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="w-full">
                         <label className="block mb-1.5 text-sm font-medium text-gray-700">Last Contact</label>
-                        <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none" 
-                            value={formData.lastContact || ''} onChange={e => setFormData({...formData, lastContact: e.target.value})} />
+                        <CustomDatePicker 
+                            value={formData.lastContact || ''} 
+                            onChange={val => setFormData({...formData, lastContact: val})}
+                            placeholder="Select Date"
+                        />
                     </div>
 
                     <div className="w-full">
                         <label className="block mb-1.5 text-sm font-medium text-gray-700">Next Follow Up</label>
-                        <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none" 
-                            value={formData.nextFollowUp || ''} onChange={e => setFormData({...formData, nextFollowUp: e.target.value})} />
+                        <CustomDatePicker 
+                            value={formData.nextFollowUp || ''} 
+                            onChange={val => setFormData({...formData, nextFollowUp: val})}
+                            placeholder="Select Date"
+                        />
                     </div>
                </div>
             </div>
