@@ -24,69 +24,90 @@ public class AuthService implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
-
     private final UserRepository userRepository;
 
-
+    // ----------------------------------------------------
+    // REGISTER
+    // ----------------------------------------------------
     @Transactional
     @Override
     public Response register(RegisterRequest request) {
         Response response = new Response();
+
         try {
+            // Validate name
+            if (request.getName() == null || request.getName().isBlank()) {
+                throw new OurException("Name cannot be empty");
+            }
+
             // Validate password
             if (request.getPassword() == null || request.getPassword().isBlank()) {
-                throw new OurException("Password cannot be null or empty");
+                throw new OurException("Password cannot be empty");
             }
 
             // Validate email
-            String email = request.getEmail().trim();
+            String email = request.getEmail() == null ? null : request.getEmail().trim();
+            if (email == null || email.isBlank()) {
+                throw new OurException("Email cannot be empty");
+            }
+
             if (userRepository.existsByEmail(email)) {
                 throw new OurException("Email already exists: " + email);
             }
 
             // Create User
             User user = new User();
-            user.setName(request.getName());
+            user.setName(request.getName().trim());
             user.setEmail(email);
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-            // Role
             user.setRole(request.getRole() != null ? request.getRole() : USER_ROLE.ROLE_EMPLOYEE);
 
-            User savedUser = userRepository.save(user);
+            User saved = userRepository.save(user);
 
-
+            String token = jwtTokenProvider.generateToken(saved);
 
             response.setStatusCode(200);
             response.setMessage("User registered successfully");
+            response.setUser(saved);
+            response.setToken(token);
+            response.setRole(saved.getRole().name());
 
         } catch (OurException e) {
             response.setStatusCode(400);
             response.setMessage(e.getMessage());
         } catch (Exception e) {
             response.setStatusCode(500);
-            response.setMessage("Error occurred during user registration: " + e.getMessage());
+            response.setMessage("Error during registration: " + e.getMessage());
         }
 
         return response;
     }
 
+    // ----------------------------------------------------
+    // LOGIN
+    // ----------------------------------------------------
     @Override
     public Response login(LoginRequest loginRequest) {
         Response response = new Response();
+
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
             );
 
             User user = userRepository.findByEmail(loginRequest.getEmail())
                     .orElseThrow(() -> new OurException("User not found"));
 
+            // Generate JWT
             String token = jwtTokenProvider.generateToken(user);
 
             response.setStatusCode(200);
             response.setToken(token);
             response.setRole(user.getRole().name());
+            response.setUser(user);
             response.setMessage("Login successful");
 
         } catch (BadCredentialsException e) {
@@ -97,8 +118,9 @@ public class AuthService implements IAuthService {
             response.setMessage(e.getMessage());
         } catch (Exception e) {
             response.setStatusCode(500);
-            response.setMessage("Error occurred during login: " + e.getMessage());
+            response.setMessage("Error during login: " + e.getMessage());
         }
+
         return response;
     }
 }
