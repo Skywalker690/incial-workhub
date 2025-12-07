@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Hash, User, Calendar, Tag, Clock, ExternalLink, HardDrive, Linkedin, Instagram, Facebook, Globe, Link as LinkIcon } from 'lucide-react';
+import { X, Hash, User, Calendar, Tag, Clock, ExternalLink, HardDrive, Linkedin, Instagram, Facebook, Twitter, Globe, Link as LinkIcon } from 'lucide-react';
 import { Company } from '../../types';
 import { getCompanyStatusStyles, getWorkTypeStyles, formatDate } from '../../utils';
 
@@ -80,6 +80,11 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ isOpen
                         {company.socials?.facebook && (
                              <a href={company.socials.facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-50 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-lg border border-gray-100 transition-colors" title="Facebook">
                                 <Facebook className="h-5 w-5" />
+                             </a>
+                        )}
+                        {company.socials?.twitter && (
+                             <a href={company.socials.twitter} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-50 hover:bg-blue-50 text-gray-600 hover:text-sky-500 rounded-lg border border-gray-100 transition-colors" title="Twitter">
+                                <Twitter className="h-5 w-5" />
                              </a>
                         )}
                          {company.socials?.other && (

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, Edit2, User, Phone, Mail, Calendar, Briefcase, FileText, Tag, DollarSign, CheckCircle, Clock, AlertCircle, History, ExternalLink, HardDrive, Linkedin, Instagram, Facebook, Globe, Link as LinkIcon } from 'lucide-react';
-import { CRMEntry } from '../../types';
+import { X, Save, Edit2, User, Phone, Mail, Calendar, Briefcase, FileText, Tag, DollarSign, CheckCircle, Clock, AlertCircle, History, ExternalLink, HardDrive, Linkedin, Instagram, Facebook, Twitter, Globe, Link as LinkIcon } from 'lucide-react';
+import { CRMEntry, SocialLinks } from '../../types';
 import { getStatusStyles, formatDate, getFollowUpColor, formatMoney } from '../../utils';
 import { CustomDatePicker } from '../ui/CustomDatePicker';
 
@@ -115,7 +115,7 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
       }
   };
 
-  const updateSocials = (key: keyof typeof formData.socials, value: string) => {
+  const updateSocials = (key: keyof SocialLinks, value: string) => {
       setFormData(prev => ({
           ...prev,
           socials: {
@@ -259,6 +259,12 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
                                 <a href={formData.socials.facebook} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-blue-600 transition-colors">
                                     <Facebook className="h-4 w-4" />
                                     <span className="text-sm font-medium">Facebook</span>
+                                </a>
+                            )}
+                            {formData.socials.twitter && (
+                                <a href={formData.socials.twitter} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-sky-500 transition-colors">
+                                    <Twitter className="h-4 w-4" />
+                                    <span className="text-sm font-medium">Twitter</span>
                                 </a>
                             )}
                              {formData.socials.other && (
@@ -431,6 +437,16 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
                                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
                                 value={formData.socials?.facebook || ''}
                                 onChange={e => updateSocials('facebook', e.target.value)}
+                            />
+                        </div>
+                        <div className="relative">
+                            <Twitter className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                            <input 
+                                type="url" 
+                                placeholder="Twitter (X) URL"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                                value={formData.socials?.twitter || ''}
+                                onChange={e => updateSocials('twitter', e.target.value)}
                             />
                         </div>
                          <div className="relative">
