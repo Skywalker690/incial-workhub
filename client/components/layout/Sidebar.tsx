@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, Briefcase, Settings, PieChart, Layers, ChevronRight, CheckSquare, ListTodo } from 'lucide-react';
+import { Users, Briefcase, Settings, PieChart, Layers, ChevronRight, CheckSquare, ListTodo, BarChart2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -53,7 +53,7 @@ export const Sidebar: React.FC = () => {
                 <p className="px-7 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Analytics</p>
                 <div className="space-y-1">
                     <NavItem icon={PieChart} label="Reports" to="/reports" active={currentPath === '/reports'} />
-                    {/* Removed Pipelines Link */}
+                    <NavItem icon={BarChart2} label="Team Performance" to="/admin/performance" active={currentPath === '/admin/performance'} />
                 </div>
             </div>
         )}
