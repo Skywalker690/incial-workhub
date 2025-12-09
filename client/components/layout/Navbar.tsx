@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Bell, LogOut, ChevronDown, User, Settings, CreditCard, Menu, Check, LayoutDashboard, Users, CalendarDays, CheckSquare, Calendar, Briefcase, ListTodo, PieChart, BarChart2 } from 'lucide-react';
+import { Search, Bell, LogOut, ChevronDown, User, Settings, CreditCard, Menu, Check, LayoutDashboard, Users, CalendarDays, CheckSquare, Calendar, Briefcase, ListTodo, PieChart, BarChart2, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const MobileNavItem = ({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) => (
@@ -29,7 +29,12 @@ export const Navbar: React.FC = () => {
   const notifRef = useRef<HTMLDivElement>(null);
 
   const currentPath = location.pathname;
-  const isAdmin = user?.role === 'ROLE_ADMIN';
+  
+  const role = user?.role;
+  const isSuperAdmin = role === 'ROLE_SUPER_ADMIN';
+  const isAdmin = role === 'ROLE_ADMIN' || isSuperAdmin;
+  const isEmployee = role === 'ROLE_EMPLOYEE' || isAdmin;
+  const isClient = role === 'ROLE_CLIENT';
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -158,6 +163,9 @@ export const Navbar: React.FC = () => {
                         <div className="px-3 py-2 bg-gray-50 rounded-xl">
                              <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
                              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                             <p className="text-[10px] text-brand-600 font-bold mt-1 uppercase tracking-wide border border-brand-100 bg-brand-50 inline-block px-1.5 py-0.5 rounded">
+                                 {role?.replace('ROLE_', '')}
+                             </p>
                         </div>
                     </div>
                     <div className="p-1.5 space-y-0.5">
@@ -203,17 +211,23 @@ export const Navbar: React.FC = () => {
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Menu</p>
             </div>
             
-            <MobileNavItem to="/dashboard" icon={LayoutDashboard} label="My Dashboard" active={currentPath === '/dashboard'} />
+            {isClient && <MobileNavItem to="/portal" icon={Home} label="My Project" active={currentPath === '/portal'} />}
+
+            {!isClient && <MobileNavItem to="/dashboard" icon={LayoutDashboard} label="My Dashboard" active={currentPath === '/dashboard'} />}
             
             {isAdmin && <MobileNavItem to="/crm" icon={Users} label="CRM & Leads" active={currentPath === '/crm'} />}
             
-            <MobileNavItem to="/calendar" icon={CalendarDays} label="Universal Calendar" active={currentPath === '/calendar'} />
-            <MobileNavItem to="/tasks" icon={CheckSquare} label="Tasks" active={currentPath.startsWith('/tasks')} />
-            <MobileNavItem to="/meetings" icon={Calendar} label="Meeting Tracker" active={currentPath.startsWith('/meetings')} />
-            <MobileNavItem to="/companies" icon={Briefcase} label="Companies" active={currentPath.startsWith('/companies')} />
-            <MobileNavItem to="/client-tracker" icon={ListTodo} label="Client Tracker" active={currentPath.startsWith('/client-tracker')} />
+            {isEmployee && (
+                <>
+                    <MobileNavItem to="/calendar" icon={CalendarDays} label="Universal Calendar" active={currentPath === '/calendar'} />
+                    <MobileNavItem to="/tasks" icon={CheckSquare} label="Tasks" active={currentPath.startsWith('/tasks')} />
+                    <MobileNavItem to="/meetings" icon={Calendar} label="Meeting Tracker" active={currentPath.startsWith('/meetings')} />
+                    <MobileNavItem to="/companies" icon={Briefcase} label="Companies" active={currentPath.startsWith('/companies')} />
+                    <MobileNavItem to="/client-tracker" icon={ListTodo} label="Client Tracker" active={currentPath.startsWith('/client-tracker')} />
+                </>
+            )}
             
-            {isAdmin && (
+            {isSuperAdmin && (
                 <>
                     <div className="my-2 border-t border-gray-100" />
                     <div className="mb-2 px-2 mt-2">
