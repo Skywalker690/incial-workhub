@@ -17,9 +17,12 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
     const [entries, setEntries] = useState<CRMEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
+    // Check if user has permission (Super Admin only for this page based on requirements)
+    const hasPermission = user?.role === 'ROLE_SUPER_ADMIN';
+
     useEffect(() => {
         const loadData = async () => {
-            if (user?.role === 'ROLE_ADMIN') {
+            if (hasPermission) {
                 try {
                     const data = await crmApi.getAll();
                     setEntries(data.crmList);
@@ -28,10 +31,12 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
                 } finally {
                     setIsLoading(false);
                 }
+            } else {
+                setIsLoading(false);
             }
         };
         loadData();
-    }, [user]);
+    }, [user, hasPermission]);
 
     const handleExport = async (type: 'crm' | 'tasks') => {
         if (!window.confirm(`Are you sure you want to export ${type.toUpperCase()} data to CSV?`)) return;
@@ -82,7 +87,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
     };
 
     // Safety check although route is protected
-    if (user?.role !== 'ROLE_ADMIN') {
+    if (!hasPermission) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
                 <div className="text-center p-8">

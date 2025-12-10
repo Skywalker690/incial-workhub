@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -25,6 +24,8 @@ const SuperAdminRoute: React.FC<{ children: React.ReactElement }> = ({ children 
     }
     return children;
 };
+
+localStorage.clear();
 
 // 2. Admin Route (Super Admin + Admin) - For CRM
 const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
