@@ -1,23 +1,39 @@
 spring:
   application:
-    name: workhub
-
-  profiles:
-    active: local
+    name: incial- backend
 
   datasource:
-    url: ${env.DB_URL}
-    username: ${env.DB_USER}
-    password: ${env.DB_PASSWORD}
+    url: ${ENV_DB_URL}
+    username: ${ENV_DB_USER}
+    password: ${ENV_DB_PASS}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
 
+# ===========================
+# JWT Configuration
+# ===========================
 jwt:
-  secret: ${env.JWT_SECRET}
+  secret: ${ENV_JWT_SECRET}
 
-env:
-  printer:
-    enabled: false
+# ===========================
+# Logging
+# ===========================
+logging:
+  level:
+    com.incial.crm: DEBUG
+    org.springframework.security: DEBUG
+
+# ===========================
+# Swagger Configuration
+# ===========================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
