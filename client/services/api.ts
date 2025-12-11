@@ -39,8 +39,9 @@ const handleApiError = (error: any) => {
 // Helper to clean payload
 // 1. Removes id, createdAt, lastUpdatedAt (backend handled)
 // 2. Removes keys with empty string values (prevents unique constraint/validation errors)
-// 3. Preserves empty objects/arrays (Backend converters often prefer {}/[] over null)
-const cleanPayload = (data: any): any => {
+// 3. Removes empty objects (e.g., socials: {} becomes omitted entirely)
+// 4. Preserves empty arrays (Backend converters handle empty arrays correctly)
+const cleanPayload = <T extends Record<string, any>>(data: T): Partial<T> | Partial<any>[] => {
     if (Array.isArray(data)) {
         return data.map(cleanPayload);
     }
@@ -56,12 +57,19 @@ const cleanPayload = (data: any): any => {
 
             const value = data[key];
 
-            // Recursively clean objects
+            // Recursively clean nested objects
             if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                 const cleanedObj = cleanPayload(value);
-                // Keep the object even if empty (e.g. socials: {}) to avoid NPE in backend converters
-                cleaned[key] = cleanedObj;
+                // Only include object if it has at least one property after cleaning
+                if (Object.keys(cleanedObj).length > 0) {
+                    cleaned[key] = cleanedObj;
+                }
+                // Otherwise omit the key entirely (don't send empty objects)
             } 
+            // Keep arrays even if empty (backend handles empty arrays correctly)
+            else if (Array.isArray(value)) {
+                cleaned[key] = value;
+            }
             // Keep non-empty values (0 is valid for numbers, false is valid for booleans)
             else if (value !== "" && value !== null && value !== undefined) {
                 cleaned[key] = value;
