@@ -34,8 +34,8 @@ public class Meeting {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "company_id")
-    private Long companyId;
+    @Column(name = "crm_entry_id")
+    private Long crmEntryId;
 
     @Column(name = "assigned_to", length = 255)
     private String assignedTo;

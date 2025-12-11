@@ -36,6 +36,12 @@ public class CrmEntry {
     @Column(length = 50)
     private String phone;
 
+    @Column(length = 500)
+    private String address;
+
+    @Column(name = "company_image_url", columnDefinition = "TEXT")
+    private String companyImageUrl;
+
     @Column(length = 50)
     private String status;
 
@@ -50,6 +56,9 @@ public class CrmEntry {
 
     @Column(name = "last_contact")
     private LocalDate lastContact;
+
+    @Column(name = "reference_id", unique = true, length = 50)
+    private String referenceId;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

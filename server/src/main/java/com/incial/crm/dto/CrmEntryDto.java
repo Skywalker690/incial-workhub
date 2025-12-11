@@ -22,6 +22,8 @@ public class CrmEntryDto {
     private String phone;
     private String email;
     private String contactName;
+    private String address;
+    private String companyImageUrl;
     private String assignedTo;
     
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -30,6 +32,7 @@ public class CrmEntryDto {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate nextFollowUp;
     
+    private String referenceId;
     private BigDecimal dealValue;
     private String notes;
     private String status;

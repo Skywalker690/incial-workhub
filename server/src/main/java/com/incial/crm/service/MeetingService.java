@@ -30,7 +30,7 @@ public class MeetingService {
     public MeetingDto updateMeeting(Long id, MeetingDto dto) {
         Meeting meeting = meetingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meeting not found with id: " + id));
-
+        
         updateEntityFromDto(meeting, dto);
         Meeting updated = meetingRepository.save(meeting);
         return convertToDto(updated);
@@ -51,7 +51,7 @@ public class MeetingService {
                 .status(entity.getStatus())
                 .meetingLink(entity.getMeetingLink())
                 .notes(entity.getNotes())
-                .companyId(entity.getCompanyId())
+                .crmEntryId(entity.getCrmEntryId())
                 .assignedTo(entity.getAssignedTo())
                 .createdAt(entity.getCreatedAt())
                 .build();
@@ -64,7 +64,7 @@ public class MeetingService {
                 .status(dto.getStatus())
                 .meetingLink(dto.getMeetingLink())
                 .notes(dto.getNotes())
-                .companyId(dto.getCompanyId())
+                .crmEntryId(dto.getCrmEntryId())
                 .assignedTo(dto.getAssignedTo())
                 .build();
     }
@@ -75,7 +75,7 @@ public class MeetingService {
         if (dto.getStatus() != null) entity.setStatus(dto.getStatus());
         if (dto.getMeetingLink() != null) entity.setMeetingLink(dto.getMeetingLink());
         if (dto.getNotes() != null) entity.setNotes(dto.getNotes());
-        if (dto.getCompanyId() != null) entity.setCompanyId(dto.getCompanyId());
+        if (dto.getCrmEntryId() != null) entity.setCrmEntryId(dto.getCrmEntryId());
         if (dto.getAssignedTo() != null) entity.setAssignedTo(dto.getAssignedTo());
     }
 }

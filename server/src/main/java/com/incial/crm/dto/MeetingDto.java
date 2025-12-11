@@ -18,7 +18,7 @@ public class MeetingDto {
     private String status;
     private String meetingLink;
     private String notes;
-    private Long companyId;
+    private Long crmEntryId;
     private String assignedTo;
     private LocalDateTime createdAt;
 }

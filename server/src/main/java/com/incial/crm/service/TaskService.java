@@ -34,8 +34,8 @@ public class TaskService {
         // Get user by email to find their name
         // Tasks are assigned by name, not email
         return taskRepository.findAll().stream()
-                .filter(task -> task.getAssignedTo() != null &&
-                        task.getAssignedTo().contains(userEmail.split("@")[0]))
+                .filter(task -> task.getAssignedTo() != null && 
+                               task.getAssignedTo().contains(userEmail.split("@")[0]))
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -49,17 +49,17 @@ public class TaskService {
     public TaskDto updateTask(Long id, TaskDto dto) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
-
+        
         // Check if task is being marked as completed
         String oldStatus = task.getStatus();
         boolean wasCompleted = "completed".equalsIgnoreCase(oldStatus);
-
+        
         updateEntityFromDto(task, dto);
-
+        
         // If status changed to completed and task is assigned, increment user's counter
         String newStatus = task.getStatus();
         boolean isNowCompleted = "completed".equalsIgnoreCase(newStatus);
-
+        
         if (!wasCompleted && isNowCompleted && task.getAssignedTo() != null && !task.getAssignedTo().isEmpty()) {
             // Try to find user by email in assignedTo field
             String assignedTo = task.getAssignedTo();
@@ -73,7 +73,7 @@ public class TaskService {
                 }
             }
         }
-
+        
         Task updated = taskRepository.save(task);
         return convertToDto(updated);
     }

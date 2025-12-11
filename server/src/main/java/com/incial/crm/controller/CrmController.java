@@ -20,27 +20,34 @@ public class CrmController {
     private CrmService crmService;
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN')")
     public ResponseEntity<Map<String, List<CrmEntryDto>>> getAllEntries() {
         return ResponseEntity.ok(crmService.getAllEntries());
     }
 
+    @GetMapping("/details/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN')")
+    public ResponseEntity<CrmEntryDto> getCrmDetails(@PathVariable Long id) {
+        CrmEntryDto details = crmService.getCrmDetails(id);
+        return ResponseEntity.ok(details);
+    }
+
     @PostMapping("/create")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<CrmEntryDto> createEntry(@RequestBody CrmEntryDto dto) {
         CrmEntryDto created = crmService.createEntry(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/update/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<CrmEntryDto> updateEntry(@PathVariable Long id, @RequestBody CrmEntryDto dto) {
         CrmEntryDto updated = crmService.updateEntry(id, dto);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteEntry(@PathVariable Long id) {
         crmService.deleteEntry(id);
         return ResponseEntity.noContent().build();
