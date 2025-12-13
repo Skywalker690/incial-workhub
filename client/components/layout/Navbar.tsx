@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Bell, LogOut, ChevronDown, User, Settings, CreditCard, Menu, Check, LayoutDashboard, Users, CalendarDays, CheckSquare, Calendar, Briefcase, ListTodo, PieChart, BarChart2, Home } from 'lucide-react';
+import { Search, Bell, LogOut, ChevronDown, User, Settings, CreditCard, Menu, Check, LayoutDashboard, Users, CalendarDays, CheckSquare, Calendar, Briefcase, ListTodo, PieChart, BarChart2, Home, PanelLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLayout } from '../../context/LayoutContext';
 
 const MobileNavItem = ({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) => (
   <Link
@@ -20,6 +21,7 @@ const MobileNavItem = ({ to, icon: Icon, label, active }: { to: string, icon: an
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { toggleSidebar } = useLayout();
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -58,27 +60,38 @@ export const Navbar: React.FC = () => {
   return (
     <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30 transition-all">
       
-      {/* Mobile Menu Trigger */}
-      <button 
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 active:bg-gray-200 transition-colors"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
+      <div className="flex items-center gap-4 w-full max-w-md">
+          {/* Mobile Menu Trigger */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 active:bg-gray-200 transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
 
-      {/* Search Bar - Global */}
-      <div className="relative w-full max-w-md hidden md:block group">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-          <Search className="h-4.5 w-4.5 text-gray-400 group-focus-within:text-brand-500 transition-colors" />
-        </span>
-        <input
-          type="text"
-          placeholder="Search for anything..."
-          className="w-full pl-11 pr-14 py-2.5 bg-gray-50 border border-transparent hover:border-gray-200 focus:border-brand-500 rounded-2xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:bg-white transition-all duration-300"
-        />
-        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-            <span className="text-[10px] font-bold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 bg-gray-50 shadow-sm">⌘ K</span>
-        </div>
+          {/* Desktop Sidebar Toggle */}
+          <button 
+            onClick={toggleSidebar}
+            className="hidden md:flex p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Toggle Sidebar"
+          >
+            <PanelLeft className="h-5 w-5" />
+          </button>
+
+          {/* Search Bar - Global */}
+          <div className="relative w-full hidden md:block group">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+              <Search className="h-4.5 w-4.5 text-gray-400 group-focus-within:text-brand-500 transition-colors" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search for anything..."
+              className="w-full pl-11 pr-14 py-2.5 bg-gray-50 border border-transparent hover:border-gray-200 focus:border-brand-500 rounded-2xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:bg-white transition-all duration-300"
+            />
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <span className="text-[10px] font-bold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 bg-gray-50 shadow-sm">⌘ K</span>
+            </div>
+          </div>
       </div>
 
       {/* Right Side Actions */}
@@ -143,17 +156,9 @@ export const Navbar: React.FC = () => {
                 className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group outline-none"
             >
                 <div className="relative">
-                    {user?.avatarUrl ? (
-                        <img 
-                            src={user.avatarUrl} 
-                            alt={user.name} 
-                            className="h-10 w-10 rounded-full border-2 border-white shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform object-cover"
-                        />
-                    ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-                            {user?.name?.charAt(0)}
-                        </div>
-                    )}
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
+                        {user?.name?.charAt(0)}
+                    </div>
                     <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
 

@@ -6,9 +6,9 @@ spring:
 
 
   datasource:
-    url: ${ENV_DB_URL}
-    username: ${ENV_DB_USER}
-    password: ${ENV_DB_PASS}
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -22,7 +22,14 @@ spring:
 # JWT Configuration
 # ===========================
 jwt:
-  secret: ${ENV_JWT_SECRET}
+  secret: ${JWT_SECRET}
+
+# ===========================
+# Google OAuth Configuration
+# ===========================
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID:}
 
 # ===========================
 # Logging
@@ -48,3 +55,4 @@ springdoc:
 env:
   printer:
     enabled: true
+    endpoint-enabled: true

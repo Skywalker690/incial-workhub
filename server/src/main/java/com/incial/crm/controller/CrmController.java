@@ -20,13 +20,17 @@ public class CrmController {
     private CrmService crmService;
 
     @GetMapping("/all")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN')")
+    @PreAuthorize(
+            "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN') or hasAuthority('ROLE_EMPLOYEE')"
+    )
     public ResponseEntity<Map<String, List<CrmEntryDto>>> getAllEntries() {
         return ResponseEntity.ok(crmService.getAllEntries());
     }
 
     @GetMapping("/details/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN')")
+    @PreAuthorize(
+            "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN') or hasAuthority('ROLE_EMPLOYEE')"
+    )
     public ResponseEntity<CrmEntryDto> getCrmDetails(@PathVariable Long id) {
         CrmEntryDto details = crmService.getCrmDetails(id);
         return ResponseEntity.ok(details);
@@ -40,7 +44,9 @@ public class CrmController {
     }
 
     @PutMapping("/update/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN')")
+    @PreAuthorize(
+            "hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPER_ADMIN') or hasAuthority('ROLE_EMPLOYEE')"
+    )
     public ResponseEntity<CrmEntryDto> updateEntry(@PathVariable Long id, @RequestBody CrmEntryDto dto) {
         CrmEntryDto updated = crmService.updateEntry(id, dto);
         return ResponseEntity.ok(updated);

@@ -13,11 +13,12 @@ interface TasksTableProps {
   onPriorityChange: (task: Task, newPriority: TaskPriority) => void;
 }
 
-const Avatar = ({ name }: { name: string }) => {
-    const initials = name === 'Unassigned' ? '?' : name.slice(0, 2).toUpperCase();
-    const bg = name === 'Unassigned' ? 'bg-gray-100 text-gray-400' : 'bg-brand-100 text-brand-700';
+const Avatar = ({ name }: { name: string | null | undefined }) => {
+    const safeName = name || 'Unassigned';
+    const initials = safeName === 'Unassigned' ? '?' : safeName.slice(0, 2).toUpperCase();
+    const bg = safeName === 'Unassigned' ? 'bg-gray-100 text-gray-400' : 'bg-brand-100 text-brand-700';
     return (
-        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ${bg} border border-white shadow-sm`} title={name}>
+        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ${bg} border border-white shadow-sm`} title={safeName}>
             {initials}
         </div>
     );
@@ -178,7 +179,7 @@ export const TasksTable: React.FC<TasksTableProps> = ({ data, companyMap, onEdit
                         <td className="px-6 py-3">
                              <div className="flex items-center gap-2">
                                 <Avatar name={task.assignedTo} />
-                                <span className="text-xs font-medium text-gray-600">{task.assignedTo}</span>
+                                <span className="text-xs font-medium text-gray-600">{task.assignedTo || 'Unassigned'}</span>
                              </div>
                         </td>
 

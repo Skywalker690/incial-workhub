@@ -132,6 +132,31 @@ export const crmApi = {
   }
 };
 
+// --- COMPANIES API (Accessible by Employees) ---
+export const companiesApi = {
+  getAll: async (): Promise<CRMEntry[]> => {
+    try {
+        const res = await api.get("/companies/all");
+        // Map backend response if needed (e.g. name -> company) to match CRMEntry interface
+        const data = Array.isArray(res.data) ? res.data : [];
+        return data.map((item: any) => ({
+            ...item,
+            company: item.name || item.company // Handle backend sending 'name' instead of 'company'
+        }));
+    } catch (error) { throw handleApiError(error); }
+  },
+  
+  // Note: Create/Update/Delete typically handled via CRM endpoints for consistency, 
+  // but if needed for employees they can be added here mirroring backend routes.
+  update: async (id: number, data: Partial<CRMEntry>): Promise<CRMEntry> => {
+     try {
+        const payload = cleanPayload(data);
+        const res = await api.put(`/companies/update/${id}`, payload);
+        return { ...res.data, company: res.data.name || res.data.company };
+     } catch (error) { throw handleApiError(error); }
+  }
+};
+
 // --- TASKS API ---
 export const tasksApi = {
   getAll: async (): Promise<Task[]> => {

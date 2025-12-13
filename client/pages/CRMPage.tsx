@@ -7,13 +7,15 @@ import { CRMTable } from '../components/crm/CRMTable';
 import { CRMStats } from '../components/crm/CRMStats';
 import { CRMForm } from '../components/crm/CRMForm';
 import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
-import { FilterState, CRMEntry } from '../types';
+import { FilterState, CRMEntry, CRMStatus } from '../types';
 import { Plus } from 'lucide-react';
 import { crmApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export const CRMPage: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [entries, setEntries] = useState<CRMEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -39,6 +41,7 @@ export const CRMPage: React.FC = () => {
       setEntries(response.crmList);
     } catch (error) {
       console.error("Failed to fetch CRM data", error);
+      showToast("Failed to load CRM data", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -99,8 +102,9 @@ export const CRMPage: React.FC = () => {
       
       try {
         await crmApi.delete(id);
+        showToast("Deal removed successfully", 'success');
       } catch (e) {
-        alert("Failed to delete item");
+        showToast("Failed to delete item", 'error');
         fetchData();
       }
   };
@@ -117,20 +121,40 @@ export const CRMPage: React.FC = () => {
               const updatedEntry = { ...editingEntry, ...finalData } as CRMEntry;
               setEntries(entries.map(e => e.id === updatedEntry.id ? updatedEntry : e)); // Optimistic
               await crmApi.update(updatedEntry.id, finalData);
-              // TODO: Replace with toast notification system for better UX
-              alert("✅ Deal updated successfully!");
+              showToast("Deal details updated", 'success');
           } else {
               const newEntry = await crmApi.create(finalData as CRMEntry);
               setEntries([newEntry, ...entries]);
-              // TODO: Replace with toast notification system for better UX
-              alert("✅ Deal created successfully!");
+              showToast("New deal added to pipeline", 'success');
           }
-      } catch (e: any) {
+      } catch (e) {
           console.error("Failed to save", e);
-          const errorMessage = e.message || "Unknown error occurred";
-          // TODO: Replace with toast notification system for better UX
-          alert(`❌ Failed to save deal: ${errorMessage}`);
+          showToast("Failed to save deal", 'error');
           fetchData(); // Revert on error
+      }
+  };
+
+  const handleStatusChange = async (entry: CRMEntry, newStatus: CRMStatus) => {
+      const updatedEntry = { 
+          ...entry, 
+          status: newStatus,
+          lastUpdatedBy: user?.name || 'Unknown',
+          lastUpdatedAt: new Date().toISOString()
+      };
+      
+      // Optimistic Update
+      setEntries(prev => prev.map(e => e.id === entry.id ? updatedEntry : e));
+      
+      try {
+          await crmApi.update(entry.id, { 
+              status: newStatus,
+              lastUpdatedBy: user?.name || 'Unknown',
+              lastUpdatedAt: new Date().toISOString()
+          });
+          showToast(`Status updated to ${newStatus}`, 'success');
+      } catch (e) {
+          showToast("Failed to update status", 'error');
+          fetchData(); // Revert
       }
   };
 
@@ -178,6 +202,7 @@ export const CRMPage: React.FC = () => {
                     isLoading={isLoading} 
                     onView={handleEdit} 
                     onDelete={handleRequestDelete}
+                    onStatusChange={handleStatusChange}
                 />
             </div>
             

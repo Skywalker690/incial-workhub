@@ -151,10 +151,10 @@ export const ClientTaskTable: React.FC<ClientTaskTableProps> = ({ tasks, onEdit,
                         <td className="px-6 py-3">
                              <div className="flex items-center gap-2">
                                 <div className="h-6 w-6 rounded-full bg-brand-50 text-brand-600 border border-brand-100 flex items-center justify-center text-[10px] font-bold">
-                                    {task.assignedTo === 'Unassigned' ? '?' : task.assignedTo.charAt(0)}
+                                    {(task.assignedTo && task.assignedTo !== 'Unassigned') ? task.assignedTo.charAt(0) : '?'}
                                 </div>
                                 <span className="text-sm text-gray-600 font-medium truncate max-w-[100px]">
-                                    {task.assignedTo === 'Vallapata' ? 'Athul' : task.assignedTo.split(' ')[0]}
+                                    {task.assignedTo === 'Vallapata' ? 'Athul' : (task.assignedTo ? task.assignedTo.split(' ')[0] : 'Unassigned')}
                                 </span>
                              </div>
                         </td>
