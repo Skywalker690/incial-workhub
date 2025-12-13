@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Task, TaskStatus } from '../../types';
-import { getTaskPriorityStyles } from '../../utils';
+import { getTaskPriorityStyles, isRecentlyUpdated, formatDate } from '../../utils';
 import { MoreHorizontal, Plus, Calendar } from 'lucide-react';
-import { formatDate } from '../../utils';
 
 interface TasksKanbanProps {
   tasks: Task[];
@@ -64,7 +63,11 @@ const KanbanColumn = ({
             </div>
 
             <div className="space-y-3 flex-1 overflow-y-auto pr-1 pb-10 custom-scrollbar">
-                {tasks.map(task => (
+                {tasks.map(task => {
+                    const isCompleted = (task.status === 'Completed' || task.status === 'Done');
+                    const shouldAnimate = isCompleted && isRecentlyUpdated(task.lastUpdatedAt, 10);
+
+                    return (
                     <div 
                         key={task.id}
                         draggable={!readOnly}
@@ -75,7 +78,10 @@ const KanbanColumn = ({
                             }
                         }}
                         onClick={() => !readOnly && onEdit(task)}
-                        className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm transition-all group ${!readOnly ? 'hover:shadow-md cursor-pointer active:cursor-grabbing' : 'cursor-default'}`}
+                        className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm transition-all group 
+                            ${!readOnly ? 'hover:shadow-md cursor-pointer active:cursor-grabbing' : 'cursor-default'}
+                            ${shouldAnimate ? 'animate-task-complete ring-2 ring-green-100' : ''}
+                        `}
                     >
                         <div className="flex items-start justify-between mb-2">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getTaskPriorityStyles(task.priority)}`}>
@@ -103,7 +109,7 @@ const KanbanColumn = ({
                             )}
                         </div>
                     </div>
-                ))}
+                )})}
             </div>
         </div>
     );
