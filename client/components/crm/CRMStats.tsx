@@ -4,8 +4,19 @@ import { TrendingUp, Users, Briefcase, Activity } from 'lucide-react';
 import { CRMEntry } from '../../types';
 
 export const CRMStats: React.FC<{ entries: CRMEntry[] }> = ({ entries }) => {
-    const activeDeals = entries.filter(e => e.status !== 'drop' && e.status !== 'onboarded' && e.status !== 'completed').length;
-    const onboarded = entries.filter(e => e.status === 'onboarded').length;
+    // Active deals are those in pipeline (not lost, not won/completed)
+    const activeDeals = entries.filter(e => 
+        e.status !== 'drop' && 
+        e.status !== 'onboarded' && 
+        e.status !== 'completed'
+    ).length;
+
+    // Won Business includes currently active clients (onboarded) and finished projects (completed)
+    const wonDeals = entries.filter(e => 
+        e.status === 'onboarded' || 
+        e.status === 'completed'
+    ).length;
+
     const totalLeads = entries.length;
 
     return (
@@ -31,7 +42,7 @@ export const CRMStats: React.FC<{ entries: CRMEntry[] }> = ({ entries }) => {
                 <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Won Business</p>
                     <div className="flex items-baseline gap-2">
-                        <h3 className="text-2xl font-extrabold text-gray-900">{onboarded}</h3>
+                        <h3 className="text-2xl font-extrabold text-gray-900">{wonDeals}</h3>
                         <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Closed</span>
                     </div>
                 </div>
