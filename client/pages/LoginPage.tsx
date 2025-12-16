@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -92,7 +91,7 @@ export const LoginPage: React.FC = () => {
                     window.google.accounts.id.initialize({
                         client_id: GOOGLE_CLIENT_ID,
                         callback: handleGoogleCallback,
-                        ux_mode: "popup", 
+                        ux_mode: "popup",
                         auto_select: false,
                         cancel_on_tap_outside: false
                     });
@@ -210,12 +209,14 @@ export const LoginPage: React.FC = () => {
             <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 relative overflow-y-auto">
                 <div className="w-full max-w-[400px] flex flex-col">
 
-                    {/* Mobile Brand Header */}
-                    <div className="lg:hidden flex items-center gap-2 mb-12 font-bold text-2xl tracking-tight text-gray-900">
-                        <div className="h-10 w-10 bg-brand-600 text-white flex items-center justify-center rounded-xl">
-                            <Command className="h-5 w-5" />
+                    {/* Logo Area */}
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 font-bold text-2xl tracking-tight text-white">
+                            <div className="relative z-10 flex items-center gap-3 text-2xl font-bold tracking-tight">
+                                <img src="/logo.png" alt="Incial" className="h-10 w-10 rounded-xl bg-white shadow-lg object-contain p-1" />
+                                Incial
+                            </div>
                         </div>
-                        Incial
                     </div>
 
                     <div className="mb-10">
@@ -309,7 +310,6 @@ export const LoginPage: React.FC = () => {
                             ></div>
                         </div>
                     </form>
-
                     <p className="text-center text-xs text-gray-400 mt-8 font-medium">
                         Don't have an account? <a href="mailto:incial@gmail.com" className="text-brand-600 font-bold hover:underline">Contact Sales</a>
                     </p>
