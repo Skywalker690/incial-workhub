@@ -10,106 +10,23 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
 
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- External Styles -->
+  <link rel="stylesheet" href="styles.css">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Inline Tailwind Configuration -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              200: '#bfdbfe',
-              300: '#93c5fd',
-              400: '#60a5fa',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-              800: '#1e40af',
-              900: '#1e3a8a',
-              950: '#172554',
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
-
-  <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: #f8fafc;
-    }
-
-    /* Custom Scrollbar for Table */
-    .custom-scrollbar::-webkit-scrollbar {
-      height: 6px;
-      width: 6px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* Hide scrollbar utility */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      /* IE and Edge */
-      scrollbar-width: none;
-      /* Firefox */
-    }
-
-    /* Task Completion Animation */
-    @keyframes task-success {
-      0% {
-        background-color: #dcfce7;
-        transform: scale(0.98);
-      }
-
-      50% {
-        background-color: #f0fdf4;
-        transform: scale(1.01);
-      }
-
-      100% {
-        background-color: transparent;
-        transform: scale(1);
-      }
-    }
-
-    .animate-task-complete {
-      animation: task-success 1s ease-out forwards;
-    }
-
-    /* Fix for sticky column background during animation */
-    tr.animate-task-complete>td.sticky {
-      animation: task-success 1s ease-out forwards;
-    }
-  </style>
+  <!-- External Tailwind Configuration -->
+  <script src="tailwind.config.js"></script>
 </head>
 
 <body>
   <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+  <script type="module" src="index.tsx"></script>
+
 </body>
 
 </html>

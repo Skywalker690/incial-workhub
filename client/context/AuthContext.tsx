@@ -34,27 +34,31 @@ const isTokenExpired = (token: string): boolean => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Initialize state directly from localStorage to avoid initial render redirect issues
+  const [token, setToken] = useState<string | null>(() => {
+      const storedToken = localStorage.getItem('token');
+      return storedToken;
+  });
+  
+  const [user, setUser] = useState<User | null>(() => {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser) : null;
+  });
 
-  // Initialize Auth State
+  // Validate token on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
+    
+    if (storedToken) {
       if (isTokenExpired(storedToken)) {
-        // Token expired while app was closed
+        // Token expired while app was closed or during refresh validation
         console.warn("Session expired. Clearing storage.");
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
-      } else {
-        // Token valid
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
       }
+      // If valid, state is already set by lazy initialization
     }
   }, []);
 
@@ -70,8 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    
-    // Optional: Redirect to login if not already there is handled by App.tsx protected routes
+    // Note: Router components listening to isAuthenticated will automatically redirect
   }, []);
 
   // Listen for 401/403 events from api.ts
@@ -86,8 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [logout]);
 
+  const isAuthenticated = !!token && !!user;
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

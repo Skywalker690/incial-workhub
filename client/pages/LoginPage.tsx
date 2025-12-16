@@ -1,9 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Command, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+declare global {
+    interface Window {
+        google: any;
+    }
+}
+
+const GoogleIcon = () => (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+    </svg>
+);
 
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -13,6 +28,12 @@ export const LoginPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
 
+    // Refs for stable initialization
+    const googleBtnWrapperRef = useRef<HTMLDivElement>(null);
+    const isGsiInitializedRef = useRef(false);
+
+    const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -20,6 +41,10 @@ export const LoginPage: React.FC = () => {
 
         try {
             const response = await authApi.login(email, password);
+            // Validate response structure before login
+            if (!response.user || !response.token) {
+                throw new Error("Invalid response from server");
+            }
             login(response.token, response.user);
         } catch (err: any) {
             setError(err.message || 'Authentication failed');
@@ -27,6 +52,87 @@ export const LoginPage: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    const handleGoogleCallback = async (response: any) => {
+        // 1. Client-side Validation
+        if (!response?.credential) {
+            console.error("Google Sign-In Error: No credential received");
+            setError('Google authentication failed. Please try again.');
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            // 2. Backend Exchange
+            const authRes = await authApi.googleLogin(response.credential);
+
+            // 3. Consistency Check
+            if (!authRes.token || !authRes.user) {
+                throw new Error("Login failed: Missing user profile data");
+            }
+
+            login(authRes.token, authRes.user);
+        } catch (err: any) {
+            console.error("Google Login Backend Error:", err);
+            setError(err.message || 'Google Login Failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // Prevent double initialization in React Strict Mode
+        if (isGsiInitializedRef.current) return;
+
+        const initializeGsi = () => {
+            if (window.google && window.google.accounts) {
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID,
+                        callback: handleGoogleCallback,
+                        ux_mode: "popup", 
+                        auto_select: false,
+                        cancel_on_tap_outside: false
+                    });
+
+                    const container = document.getElementById("googleSignInDiv");
+                    if (container && googleBtnWrapperRef.current) {
+                        const width = googleBtnWrapperRef.current.offsetWidth;
+
+                        window.google.accounts.id.renderButton(
+                            container,
+                            {
+                                type: "standard",
+                                theme: "outline",
+                                size: "large",
+                                text: "continue_with",
+                                shape: "rectangular",
+                                logo_alignment: "left",
+                                width: width
+                            }
+                        );
+                        isGsiInitializedRef.current = true;
+                    }
+                } catch (e) {
+                    console.warn("Google Sign-In initialization error:", e);
+                }
+            }
+        };
+
+        initializeGsi();
+
+        // Fallback: If script loads slightly later (network latency), try once more safely.
+        // This replaces the aggressive polling loop.
+        const timer = setTimeout(() => {
+            if (!isGsiInitializedRef.current) {
+                initializeGsi();
+            }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <div className="min-h-screen w-full flex font-sans bg-white">
@@ -101,7 +207,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             {/* RIGHT PANEL: The Form */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 relative">
+            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 relative overflow-y-auto">
                 <div className="w-full max-w-[400px] flex flex-col">
 
                     {/* Mobile Brand Header */}
@@ -184,19 +290,24 @@ export const LoginPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => alert("Google Login unavailable")}
-                            className="w-full bg-white border border-gray-200 text-gray-700 font-bold text-sm py-3.5 rounded-xl transition-all hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center gap-2.5 active:bg-gray-50"
+                        {/* Custom Google Login Button Container */}
+                        <div
+                            ref={googleBtnWrapperRef}
+                            className="relative w-full h-[52px] group"
                         >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24">
-                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                            </svg>
-                            Google Account
-                        </button>
+                            {/* The Visual Button (Underneath) - Matches Sign In Button Roundness (rounded-xl) */}
+                            <div className="absolute inset-0 flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm transition-all group-hover:bg-gray-50 group-hover:border-gray-300">
+                                <GoogleIcon />
+                                <span className="text-sm font-bold text-gray-700">Continue with Google</span>
+                            </div>
+
+                            {/* The Actual Click Target (Invisible Google Button) */}
+                            {/* Opacity 0 ensures it's invisible but clickable. z-10 places it on top. */}
+                            <div
+                                id="googleSignInDiv"
+                                className="absolute inset-0 z-10 opacity-0 cursor-pointer overflow-hidden rounded-xl"
+                            ></div>
+                        </div>
                     </form>
 
                     <p className="text-center text-xs text-gray-400 mt-8 font-medium">
