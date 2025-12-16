@@ -36,3 +36,4 @@ build/
 
 # Ignore SQL seed files
 src/main/resources/seed/
+/docs
