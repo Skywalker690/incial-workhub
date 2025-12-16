@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -32,7 +33,7 @@ export const LoginPage: React.FC = () => {
     const isGsiInitializedRef = useRef(false);
 
     // Safe access to env variable or fallback
-    const GOOGLE_CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID ;
+    const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -298,16 +299,18 @@ export const LoginPage: React.FC = () => {
                             className="relative w-full h-[52px] group"
                         >
                             {/* The Visual Button (Underneath) - Matches Sign In Button Roundness (rounded-xl) */}
-                            <div className="absolute inset-0 flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm transition-all group-hover:bg-gray-50 group-hover:border-gray-300">
+                            {/* Added pointer-events-none to prevent layer interference */}
+                            <div className="absolute inset-0 flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm transition-all group-hover:bg-gray-50 group-hover:border-gray-300 pointer-events-none">
                                 <GoogleIcon />
                                 <span className="text-sm font-bold text-gray-700">Continue with Google</span>
                             </div>
 
                             {/* The Actual Click Target (Invisible Google Button) */}
-                            {/* Opacity 0 ensures it's invisible but clickable. z-10 places it on top. */}
+                            {/* Changed opacity to 0.01 to ensure hit-testing works in strict environments */}
+                            {/* Increased z-index to 20 */}
                             <div
                                 id="googleSignInDiv"
-                                className="absolute inset-0 z-10 opacity-0 cursor-pointer overflow-hidden rounded-xl"
+                                className="absolute inset-0 z-20 opacity-[0.01] cursor-pointer overflow-hidden rounded-xl"
                             ></div>
                         </div>
                     </form>
