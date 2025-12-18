@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  aws-cli: circleci/aws-cli@5.1.0
-
 jobs:
   build-and-push:
     docker:
@@ -20,15 +17,16 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
 
-      # Configure AWS CLI
-      - aws-cli/setup:
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          aws-region: AWS_REGION
+      # Install AWS CLI
+      - run:
+          name: Install AWS CLI
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y awscli
 
       # Login to Amazon ECR
       - run:
-          name: Login to ECR
+          name: Login to Amazon ECR
           command: |
             aws ecr get-login-password --region $AWS_REGION |
             docker login \
