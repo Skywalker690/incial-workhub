@@ -1,0 +1,49 @@
+# Maven build output
+target/
+!target/backend-*.jar
+
+# Maven wrapper
+.mvn/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+
+# Environment files (should not be in image)
+.env
+.env.*
+*.env
+
+# Test files
+src/test/
+
+# Scripts
+scripts/
+
+# Docker files
+docker-compose.yml
+Dockerfile
+.dockerignore
