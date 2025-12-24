@@ -8,14 +8,15 @@ import { CompanyDetailsModal } from '../components/companies/CompanyDetailsModal
 import { CompaniesForm } from '../components/companies/CompaniesForm';
 import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
 import { CRMEntry, CompanyFilterState, CRMStatus } from '../types';
-import { Briefcase, Building, Archive, CheckCircle } from 'lucide-react';
 import { companiesApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useLayout } from '../context/LayoutContext';
 
 export const CompaniesPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { isSidebarCollapsed } = useLayout();
   const [crmEntries, setCrmEntries] = useState<CRMEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'active' | 'dropped' | 'past'>('active');
@@ -49,10 +50,12 @@ export const CompaniesPage: React.FC = () => {
   }, []);
 
   const allCompanies = useMemo(() => {
-    return crmEntries.filter(entry => entry.status !== 'lead');
+    // Registry now strictly includes those that have passed initial lead stages
+    return crmEntries.filter(entry => ['onboarded', 'on progress', 'Quote Sent', 'completed', 'drop'].includes(entry.status));
   }, [crmEntries]);
 
   const categorizedData = useMemo(() => {
+      // Onboarded, On Progress, and Quote Sent are considered active Focus nodes in the registry
       const active = allCompanies.filter(c => ['onboarded', 'on progress', 'Quote Sent'].includes(c.status));
       const dropped = allCompanies.filter(c => c.status === 'drop');
       const past = allCompanies.filter(c => c.status === 'completed');
@@ -116,6 +119,10 @@ export const CompaniesPage: React.FC = () => {
       try {
           await companiesApi.update(company.id, updatedEntry);
           showToast(`Status updated to ${newStatus}`, "success");
+          // If status changes out of registry criteria, re-fetch to update view
+          if (!['onboarded', 'on progress', 'Quote Sent', 'completed', 'drop'].includes(newStatus)) {
+              fetchData();
+          }
       } catch (e) {
           fetchData();
           showToast("Failed to update status", "error");
@@ -129,129 +136,98 @@ export const CompaniesPage: React.FC = () => {
 
   const confirmDelete = async () => {
       if(!deleteId) return;
-      const id = deleteId;
-      setCrmEntries(crmEntries.filter(e => e.id !== id));
+      setCrmEntries(crmEntries.filter(e => e.id !== deleteId));
       setDeleteId(null);
-      try {
-          console.warn("Delete action requested. Ensure backend permissions.");
-      } catch (err) {
-          fetchData();
-      }
+      showToast("Company removed from registry", "info");
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen mesh-bg relative">
+      <div className="glass-canvas" />
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
         <Navbar />
         
-        <main className="flex-1 flex flex-col p-8 overflow-y-auto custom-scrollbar h-[calc(100vh-80px)]">
+        <div className="px-4 lg:px-12 py-6 lg:py-10 pb-32">
           
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-white rounded-2xl border border-gray-200 flex items-center justify-center shadow-sm">
-                    <Briefcase className="h-6 w-6 text-brand-600" />
-                </div>
-                <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Companies Registry</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Unified directory of all active accounts and past projects.</p>
-                </div>
-            </div>
+          <div className="mb-8 lg:mb-12 animate-premium">
+              <div className="flex items-center gap-3 mb-2 lg:mb-4">
+                   <div className="h-1.5 lg:h-2 w-1.5 lg:w-2 rounded-full bg-indigo-500 animate-pulse" />
+                   <span className="text-[9px] lg:text-[10px] font-black text-indigo-600 uppercase tracking-[0.5em]">Central Registry</span>
+              </div>
+              <h1 className="text-4xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-none display-text">Registry.</h1>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col flex-1 overflow-hidden">
+          <div className="bg-white/30 backdrop-blur-2xl rounded-[2rem] lg:rounded-[3rem] border border-white/60 shadow-xl flex flex-col mb-12 overflow-hidden">
             
-            {/* Premium Tab Bar */}
-            <div className="px-6 pt-6 pb-2 border-b border-gray-100 bg-gray-50/30">
-                <div className="flex items-center gap-2 p-1 bg-gray-100/50 rounded-2xl w-fit">
+            <div className="px-4 lg:px-8 pt-4 lg:pt-8 pb-4 border-b border-gray-100 bg-white/20 rounded-t-[2rem] lg:rounded-t-[3rem]">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/40 rounded-xl lg:rounded-2xl w-full sm:w-fit border border-white/60">
                     <button 
                         onClick={() => setActiveTab('active')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 lg:px-6 py-2 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                             activeTab === 'active' 
-                            ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' 
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                            ? 'bg-white text-brand-700 shadow-sm border border-gray-100' 
+                            : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        <Building className="h-4 w-4" />
-                        Active
-                        <span className={`px-2 py-0.5 rounded-md text-xs border ml-1 ${activeTab === 'active' ? 'bg-gray-50 border-gray-200' : 'bg-gray-200 border-transparent'}`}>
-                            {categorizedData.active.length}
-                        </span>
+                        Active Focus
+                        <span className="ml-2 px-1.5 lg:px-2 py-0.5 rounded bg-brand-50 text-brand-600 text-[9px] lg:text-[10px]">{categorizedData.active.length}</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('past')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 lg:px-6 py-2 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                             activeTab === 'past' 
-                            ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' 
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                            ? 'bg-white text-brand-700 shadow-sm border border-gray-100' 
+                            : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        <CheckCircle className="h-4 w-4" />
-                        Past Works
-                        <span className={`px-2 py-0.5 rounded-md text-xs border ml-1 ${activeTab === 'past' ? 'bg-gray-50 border-gray-200' : 'bg-gray-200 border-transparent'}`}>
-                            {categorizedData.past.length}
-                        </span>
+                        Historical
+                        <span className="ml-2 px-1.5 lg:px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[9px] lg:text-[10px]">{categorizedData.past.length}</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('dropped')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 lg:px-6 py-2 lg:py-2.5 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                             activeTab === 'dropped' 
-                            ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' 
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                            ? 'bg-white text-brand-700 shadow-sm border border-gray-100' 
+                            : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        <Archive className="h-4 w-4" />
                         Archived
-                        <span className={`px-2 py-0.5 rounded-md text-xs border ml-1 ${activeTab === 'dropped' ? 'bg-gray-50 border-gray-200' : 'bg-gray-200 border-transparent'}`}>
-                            {categorizedData.dropped.length}
-                        </span>
+                        <span className="ml-2 px-1.5 lg:px-2 py-0.5 rounded bg-rose-50 text-rose-600 text-[9px] lg:text-[10px]">{categorizedData.dropped.length}</span>
                     </button>
                 </div>
             </div>
 
             <CompaniesFilters filters={filters} setFilters={setFilters} onRefresh={fetchData} />
             
-            <div className="flex-1 overflow-auto bg-white">
+            <div className="pt-4 pb-10 overflow-x-auto">
                 <CompaniesTable 
                     data={displayData} 
                     isLoading={isLoading} 
-                    onEdit={handleEdit}
                     onView={handleView}
-                    onDelete={(id) => setDeleteId(id)}
                     onStatusChange={handleStatusChange}
                 />
             </div>
             
-            <div className="p-4 border-t border-gray-50 bg-white text-xs font-medium text-gray-400 flex justify-between rounded-b-[2.5rem]">
-                <span>
-                    Showing {displayData.length} records
-                </span>
-                <span>Synced with CRM</span>
+            <div className="p-4 lg:p-6 border-t border-white/40 bg-white/20 text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex justify-between rounded-b-[2rem] lg:rounded-b-[3rem]">
+                <span>System Index: Optimized</span>
+                <span>Entities in view: {displayData.length}</span>
             </div>
           </div>
-        </main>
+        </div>
 
-        <CompanyDetailsModal 
-            isOpen={isViewModalOpen}
-            onClose={() => setIsViewModalOpen(false)}
-            onEdit={handleEdit}
-            company={viewingCompany}
+        <CompanyDetailsModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} onEdit={handleEdit} company={viewingCompany} />
+        <CompaniesForm 
+            isOpen={isEditModalOpen} 
+            onClose={() => setIsEditModalOpen(false)} 
+            onSubmit={handleUpdateCompany} 
+            initialData={editingCompany} 
+            onDelete={(id) => {
+                setIsEditModalOpen(false);
+                setDeleteId(id);
+            }}
         />
-        
-        <CompaniesForm
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSubmit={handleUpdateCompany}
-            initialData={editingCompany}
-        />
-
-        <DeleteConfirmationModal 
-            isOpen={!!deleteId}
-            onClose={() => setDeleteId(null)}
-            onConfirm={confirmDelete}
-            title="Remove Company"
-            message="Are you sure you want to remove this company?"
-        />
+        <DeleteConfirmationModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Purge Identity" message="This action will remove the client from the active registry." />
       </div>
     </div>
   );

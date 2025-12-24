@@ -8,10 +8,12 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  companyId?: number; // For Client Role
-  googleId?: string; // For Google OAuth users
-  avatarUrl?: string; // Profile picture from Google
-  createdAt?: string; // Timestamp of account creation
+  clientCrmId?: number; // Linked CRM ID for Client Role
+  googleId?: string; 
+  avatarUrl?: string; 
+  createdAt?: string; 
+  lastUpdatedBy?: string;
+  lastUpdatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -27,6 +29,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   role: string;
+  clientCrmId?: number;
 }
 
 export interface ApiResponse {
@@ -45,7 +48,7 @@ export interface VerifyOtpRequest {
 
 export interface ChangePasswordRequest {
   email: string;
-  newPassword: string; // Changed from 'password' to match backend DTO
+  newPassword: string; 
   otp: string; 
 }
 
@@ -71,9 +74,9 @@ export interface CRMEntry {
   contactName: string;
   assignedTo: string;
   address?: string; 
-  companyImageUrl?: string; // Added for Company Logo
-  lastContact: string; // ISO Date string YYYY-MM-DD
-  nextFollowUp: string; // ISO Date string YYYY-MM-DD
+  companyImageUrl?: string; 
+  lastContact: string; 
+  nextFollowUp: string; 
   dealValue: number;
   notes: string;
   status: CRMStatus;
@@ -95,35 +98,32 @@ export interface FilterState {
   dateRangeEnd: string;
 }
 
-// Re-using CRM Entry for Company Views
 export interface CompanyFilterState {
   search: string;
   status: string;
   workType: string;
 }
 
-// --- TASKS MODULE TYPES ---
-
-export type TaskStatus = 'Not Started' | 'In Progress' | 'In Review' | 'Posted' | 'Completed' | 'Dropped' | 'Done'; // Added Dropped/Done for Client Tracker
+export type TaskStatus = 'Not Started' | 'In Progress' | 'In Review' | 'Posted' | 'Completed' | 'Dropped' | 'Done';
 export type TaskPriority = 'Low' | 'Medium' | 'High';
-export type TaskType = 'General' | 'Reel' | 'Post' | 'Story' | 'Carousel' | 'Video'; // Added for Client Tracker
+export type TaskType = 'General' | 'Reel' | 'Post' | 'Story' | 'Carousel' | 'Video';
 
 export interface Task {
   id: number;
-  companyId?: number; // Link to specific client
+  companyId?: number; 
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  taskType?: TaskType; // Type of content/task
-  assignedTo: string; // User name or 'Unassigned'
-  dueDate: string; // YYYY-MM-DD
-  attachments?: string[]; // Links or filenames
-  taskLink?: string; // Specific link field
+  taskType?: TaskType; 
+  assignedTo: string; 
+  dueDate: string; 
+  attachments?: string[]; 
+  taskLink?: string; 
   createdAt: string;
   lastUpdatedBy?: string;
   lastUpdatedAt?: string;
-  isVisibleOnMainBoard?: boolean; // Flag to show on main dashboard
+  isVisibleOnMainBoard?: boolean; 
 }
 
 export interface TaskFilterState {
@@ -133,17 +133,16 @@ export interface TaskFilterState {
   assignedTo: string;
 }
 
-// --- MEETING MODULE TYPES ---
 export type MeetingStatus = 'Scheduled' | 'Completed' | 'Cancelled' | 'Postponed';
 
 export interface Meeting {
   id: number;
   title: string;
-  dateTime: string; // ISO string with time
+  dateTime: string; 
   status: MeetingStatus;
   meetingLink?: string;
   notes?: string;
-  companyId?: number; // Optional link to a client
+  companyId?: number; 
   assignedTo?: string;
   createdAt: string;
   lastUpdatedBy?: string;
@@ -156,8 +155,8 @@ export interface MeetingFilterState {
   dateRangeStart: string;
 }
 
-// --- INVOICE MODULE TYPES ---
-export type InvoiceStatus = 'Paid' | 'Pending' | 'Overdue' | 'Draft';
+// Added Invoice types to fix Module '../types' has no exported member errors
+export type InvoiceStatus = 'Draft' | 'Pending' | 'Paid' | 'Overdue';
 
 export interface InvoiceItem {
   id: string;
@@ -172,19 +171,15 @@ export interface Invoice {
   number: string;
   date: string;
   dueDate: string;
-  
-  // Client Details
   clientName: string;
   clientCompany: string;
-  clientAddress?: string;
-  clientEmail?: string;
-
-  // Items
+  clientAddress: string;
+  clientEmail: string;
   items: InvoiceItem[];
   subtotal: number;
-  tax: number; // Percentage
+  tax: number;
   total: number;
-  
   status: InvoiceStatus;
-  notes?: string;
+  lastUpdatedBy?: string;
+  lastUpdatedAt?: string;
 }

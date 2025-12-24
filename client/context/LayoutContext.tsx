@@ -3,7 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface LayoutContextType {
   isSidebarCollapsed: boolean;
+  isMobileSidebarOpen: boolean;
   toggleSidebar: () => void;
+  closeMobileSidebar: () => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -14,16 +16,35 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return saved ? JSON.parse(saved) : false;
   });
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev: boolean) => {
-      const newState = !prev;
-      localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
-      return newState;
-    });
+    if (window.innerWidth < 1024) {
+      setIsMobileSidebarOpen(prev => !prev);
+    } else {
+      setIsSidebarCollapsed((prev: boolean) => {
+        const newState = !prev;
+        localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+        return newState;
+      });
+    }
   };
 
+  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
+
+  // Auto-close mobile sidebar on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <LayoutContext.Provider value={{ isSidebarCollapsed, toggleSidebar }}>
+    <LayoutContext.Provider value={{ isSidebarCollapsed, isMobileSidebarOpen, toggleSidebar, closeMobileSidebar }}>
       {children}
     </LayoutContext.Provider>
   );

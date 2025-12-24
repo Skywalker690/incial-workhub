@@ -22,43 +22,50 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 p-6" onClick={(e) => e.stopPropagation()}>
-        
-        <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                <div className="mt-2 text-sm text-gray-500">
-                    <p>{message}</p>
-                    {itemName && (
-                        <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 font-medium text-gray-700 break-all">
-                            "{itemName}"
-                        </div>
-                    )}
-                </div>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="h-5 w-5" />
-            </button>
-        </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-6 animate-in fade-in duration-300" onClick={onClose}>
+      <div 
+        className="bg-white/90 backdrop-blur-3xl rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 border border-white/60 relative" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 bg-white/50 hover:bg-white rounded-full transition-all"
+        >
+            <X className="h-5 w-5" />
+        </button>
 
-        <div className="flex justify-end gap-3 mt-8">
-            <button 
-                onClick={onClose}
-                className="px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-                Cancel
-            </button>
-            <button 
-                onClick={onConfirm}
-                className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-500/30 flex items-center gap-2 transition-colors"
-            >
-                <Trash2 className="h-4 w-4" />
-                Delete
-            </button>
+        <div className="p-10 flex flex-col items-center text-center">
+            <div className="h-20 w-20 bg-rose-50 rounded-[2rem] flex items-center justify-center mb-6 border border-rose-100 shadow-inner rotate-3 group">
+                <AlertTriangle className="h-10 w-10 text-rose-500 group-hover:scale-110 transition-transform" />
+            </div>
+            
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-3">{title}</h3>
+            
+            <p className="text-sm font-medium text-slate-500 leading-relaxed mb-6">
+                {message}
+            </p>
+
+            {itemName && (
+                <div className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-8">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Target</p>
+                    <p className="text-sm font-bold text-slate-900 break-all">"{itemName}"</p>
+                </div>
+            )}
+
+            <div className="flex gap-4 w-full">
+                <button 
+                    onClick={onClose}
+                    className="flex-1 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-colors"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onClick={onConfirm}
+                    className="flex-1 py-4 text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 hover:bg-rose-700 rounded-2xl shadow-xl shadow-rose-200 flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                    <Trash2 className="h-4 w-4" /> Confirm
+                </button>
+            </div>
         </div>
       </div>
     </div>

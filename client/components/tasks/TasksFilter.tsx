@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { TaskFilterState } from '../../types';
@@ -58,7 +57,7 @@ export const TasksFilter: React.FC<TasksFilterProps> = ({ filters, setFilters })
   ];
 
   return (
-    <div className="p-4 border-b border-gray-100 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white z-20">
+    <div className="p-4 border-b border-gray-100 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white z-30">
       
       {/* Search */}
       <div className="w-full xl:w-72">

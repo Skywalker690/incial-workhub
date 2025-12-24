@@ -78,11 +78,11 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col transform transition-all scale-100" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg flex flex-col transform transition-all scale-100 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <User className="h-5 w-5 text-brand-600" /> Create New User
             </h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-200 transition-colors">
@@ -91,18 +91,18 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-visible">
+        <div className="p-6 lg:p-8 overflow-y-auto max-h-[80vh]">
             <form onSubmit={handleSubmit} className="space-y-5">
                 
                 {/* Name */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Full Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Full Name <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <input 
                             type="text" 
                             required
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all font-medium"
                             placeholder="John Doe"
                             value={formData.name}
                             onChange={e => setFormData({...formData, name: e.target.value})}
@@ -112,13 +112,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
 
                 {/* Email */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Email Address <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <input 
                             type="email" 
                             required
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all font-medium"
                             placeholder="john@incial.com"
                             value={formData.email}
                             onChange={e => setFormData({...formData, email: e.target.value})}
@@ -128,13 +128,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
 
                 {/* Password */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Password <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">Password <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <input 
                             type="password" 
                             required
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all font-medium"
                             placeholder="Min 6 characters"
                             value={formData.password}
                             onChange={e => setFormData({...formData, password: e.target.value})}
@@ -143,7 +143,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
                     </div>
                 </div>
 
-                {/* Role Selection - Core fix point */}
+                {/* Role Selection */}
                 <div className="relative z-50">
                     <CustomSelect 
                         label="System Role"
@@ -157,7 +157,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
                 {/* Client Link (Conditional) */}
                 {formData.role === 'ROLE_CLIENT' && (
                     <div className="animate-in slide-in-from-top-2 duration-300 relative z-40">
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-2 ml-1">
                             <Building className="h-3.5 w-3.5" /> Link to Company <span className="text-red-500">*</span>
                         </label>
                         <CustomSelect 
@@ -171,18 +171,18 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
                 )}
 
                 {/* Footer */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-50 mt-2">
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-50 mt-2">
                     <button 
                         type="button" 
                         onClick={onClose} 
-                        className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+                        className="px-6 py-3 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors"
                     >
                         Cancel
                     </button>
                     <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="px-5 py-2.5 text-white bg-brand-600 hover:bg-brand-700 rounded-xl font-medium shadow-lg shadow-brand-500/30 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-70"
+                        className="px-6 py-3 text-sm text-white bg-brand-600 hover:bg-brand-700 rounded-xl font-bold shadow-lg shadow-brand-500/30 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-70"
                     >
                         {isLoading ? (
                             <span className="flex items-center gap-2">Creating...</span>

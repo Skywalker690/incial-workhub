@@ -1,0 +1,5 @@
+{
+  "name": "Incial CRM",
+  "description": "A production-grade CRM dashboard with optimistic UI, JWT authentication, and advanced filtering.",
+  "requestFramePermissions": []
+}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { FilterState } from '../../types';
@@ -61,7 +60,7 @@ export const CRMFilters: React.FC<CRMFiltersProps> = ({ filters, setFilters, onR
   ];
 
   return (
-    <div className="p-4 border-b border-gray-100 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white z-20">
+    <div className="p-4 border-b border-gray-100 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white z-30">
       
       {/* Left: Inputs */}
       <div className="flex flex-wrap items-end gap-3 w-full xl:w-auto">

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, AlignLeft, Flag, Link as LinkIcon, Edit2, Maximize2, Minimize2, CheckCircle } from 'lucide-react';
+import { X, Save, Calendar, AlignLeft, Flag, Link as LinkIcon, Edit2, Maximize2, Minimize2, CheckCircle, FileText, ExternalLink, Globe, Layout } from 'lucide-react';
 import { Task, TaskPriority, TaskType } from '../../types';
 import { formatDate, formatDateTime } from '../../utils';
 import { CustomSelect } from '../ui/CustomSelect';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
 
 interface ClientTaskFormProps {
   isOpen: boolean;
@@ -20,12 +21,12 @@ const TYPES: TaskType[] = ['General', 'Reel', 'Post', 'Story', 'Carousel', 'Vide
 export const ClientTaskForm: React.FC<ClientTaskFormProps> = ({ isOpen, onClose, onSubmit, initialData, companyId, isClientView = false }) => {
   const [formData, setFormData] = useState<Partial<Task>>({});
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
         setFormData(initialData);
-        // If it's client view, they can only view existing tasks. If no ID, it's a new task they are creating.
         setMode(isClientView && !initialData.id ? 'edit' : 'view');
       } else {
         const today = new Date();
@@ -41,7 +42,7 @@ export const ClientTaskForm: React.FC<ClientTaskFormProps> = ({ isOpen, onClose,
           assignedTo: 'Unassigned',
           dueDate: localIsoDate,
           taskLink: '',
-          isVisibleOnMainBoard: false
+          isVisibleOnMainBoard: true // Default to true so they appear on main board if created here
         });
         setMode('edit');
       }
@@ -58,65 +59,70 @@ export const ClientTaskForm: React.FC<ClientTaskFormProps> = ({ isOpen, onClose,
   };
 
   const renderView = () => (
-      <div className="space-y-8">
-          <div>
-              <div className="flex items-center gap-2 mb-3">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                      formData.priority === 'High' ? 'border-rose-100 bg-rose-50 text-rose-700' :
-                      formData.priority === 'Medium' ? 'border-amber-100 bg-amber-50 text-amber-700' :
-                      'border-emerald-100 bg-emerald-50 text-emerald-700'
+      <div className="space-y-8 animate-premium">
+          <div className="bg-slate-50/50 rounded-[2.5rem] p-8 border border-slate-100 shadow-inner relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+              
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                      formData.priority === 'High' ? 'border-rose-100 bg-white text-rose-600 shadow-sm' :
+                      formData.priority === 'Medium' ? 'border-amber-100 bg-white text-amber-600 shadow-sm' :
+                      'border-emerald-100 bg-white text-emerald-600 shadow-sm'
                   }`}>
                       {formData.priority} Priority
                   </span>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 bg-indigo-50 text-indigo-700">
-                      {formData.taskType}
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-gray-100 bg-gray-50 text-gray-600">
+                  {formData.isVisibleOnMainBoard && (
+                      <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 bg-indigo-600 text-white shadow-lg shadow-indigo-200 flex items-center gap-2">
+                          <Globe className="h-3 w-3" /> Global Board
+                      </span>
+                  )}
+                  <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-100 bg-slate-50 text-slate-500">
                       {formData.status}
                   </span>
               </div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">{formData.title}</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 bg-gray-50/80 rounded-2xl border border-gray-100 shadow-inner">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5" /> Deadline
-                  </p>
-                  <p className="font-bold text-gray-900 text-lg">{formatDate(formData.dueDate || '')}</p>
-              </div>
-              <div className="p-5 bg-brand-50/30 rounded-2xl border border-brand-100/50 flex flex-col justify-center">
-                  <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <CheckCircle className="h-3.5 w-3.5" /> Project Progress
-                  </p>
-                  <p className="font-bold text-brand-900 text-lg">In Sync</p>
+              
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter leading-none mb-8 relative z-10">{formData.title}</h2>
+              
+              <div className="grid grid-cols-2 gap-6 pt-8 border-t border-slate-200/60 relative z-10">
+                <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Date</p>
+                    <p className="text-xl font-black text-slate-900">{formatDate(formData.dueDate || '')}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Context</p>
+                    <p className="text-xl font-black text-indigo-600 uppercase tracking-tighter">Client Milestone</p>
+                </div>
               </div>
           </div>
 
           {formData.taskLink && (
-              <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/50">
-                  <h3 className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <LinkIcon className="h-3.5 w-3.5" /> Project Link
-                  </h3>
-                  <a href={formData.taskLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline break-all">
-                      Open Delivery Resource
+              <div className="p-6 bg-white/40 border border-white rounded-[1.5rem] shadow-sm flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                          <LinkIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Asset Reference</p>
+                          <p className="text-sm font-bold text-slate-700 truncate max-w-[300px]">{formData.taskLink}</p>
+                      </div>
+                  </div>
+                  <a href={formData.taskLink} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-950 text-white rounded-xl shadow-xl hover:scale-110 active:scale-95 transition-all">
+                      <ExternalLink className="h-4 w-4" />
                   </a>
               </div>
           )}
 
           <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <AlignLeft className="h-4 w-4" /> Deliverable Brief
-                </h3>
-              </div>
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 text-gray-700 text-sm leading-relaxed whitespace-pre-wrap min-h-[100px] shadow-sm">
-                  {formData.description || <span className="text-gray-400 italic">No briefing provided.</span>}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1 flex items-center gap-2">
+                <AlignLeft className="h-4 w-4 text-indigo-500" /> Deliverable Briefing
+              </p>
+              <div className="bg-white/40 p-8 rounded-[2rem] border border-white text-slate-600 font-medium leading-relaxed whitespace-pre-wrap min-h-[120px] shadow-sm italic ring-1 ring-black/[0.02]">
+                  {formData.description || "No briefing provided for this strategic milestone."}
               </div>
           </div>
           
            {formData.lastUpdatedAt && (
-               <div className="pt-6 border-t border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+               <div className="pt-6 border-t border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">
                     Last updated on {formatDateTime(formData.lastUpdatedAt)}
                </div>
           )}
@@ -124,99 +130,115 @@ export const ClientTaskForm: React.FC<ClientTaskFormProps> = ({ isOpen, onClose,
   );
 
   const renderEdit = () => (
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8 animate-premium">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Request Title</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Task Identity</label>
               <input 
-                type="text"
-                required
-                className="w-full text-xl font-bold placeholder-gray-300 border-none focus:ring-0 p-0 text-gray-900"
-                placeholder="What do you need done?"
+                type="text" required
+                className="w-full px-8 py-5 bg-white border border-slate-200 rounded-[1.5rem] text-lg font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner placeholder-slate-300"
+                placeholder="What's the mission?"
                 value={formData.title || ''}
                 onChange={e => setFormData({...formData, title: e.target.value})}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
-                 <div>
-                    <CustomSelect 
-                        label="Category"
-                        value={formData.taskType || 'General'}
-                        onChange={(val) => setFormData({...formData, taskType: val as TaskType})}
-                        options={TYPES.map(t => ({ label: t, value: t }))}
-                    />
-                </div>
-
-                <div>
-                    <CustomSelect 
-                        label="Priority"
-                        value={formData.priority || 'Medium'}
-                        onChange={(val) => setFormData({...formData, priority: val as TaskPriority})}
-                        options={PRIORITIES.map(p => ({ label: p, value: p }))}
-                    />
-                </div>
-
-                 <div className="col-span-2">
-                    <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                        Target Date
-                    </label>
-                    <input 
-                        type="date"
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-gray-900 text-sm focus:ring-2 focus:ring-brand-500/20"
-                        value={formData.dueDate || ''}
-                        onChange={e => setFormData({...formData, dueDate: e.target.value})}
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner">
+                <CustomSelect label="Category" value={formData.taskType || 'General'} onChange={(val) => setFormData({...formData, taskType: val as TaskType})} options={TYPES.map(t => ({ label: t, value: t }))} />
+                <CustomSelect label="Mission Priority" value={formData.priority || 'Medium'} onChange={(val) => setFormData({...formData, priority: val as TaskPriority})} options={PRIORITIES.map(p => ({ label: p, value: p }))} />
+                <div className="col-span-1 md:col-span-2">
+                   <CustomDatePicker label="Target Delivery" value={formData.dueDate || ''} onChange={date => setFormData({...formData, dueDate: date})} />
                 </div>
             </div>
 
+            <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-[2rem] flex items-center justify-between group transition-all hover:bg-indigo-50">
+                <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-2xl transition-all duration-500 ${formData.isVisibleOnMainBoard ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>
+                        <Layout className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Global Board Visibility</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">Show this milestone in the main team workflow board.</p>
+                    </div>
+                </div>
+                <button 
+                    type="button"
+                    onClick={() => setFormData({...formData, isVisibleOnMainBoard: !formData.isVisibleOnMainBoard})}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ring-2 ring-offset-2 ring-transparent focus:ring-indigo-500/20 ${formData.isVisibleOnMainBoard ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${formData.isVisibleOnMainBoard ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+            </div>
+
             <div>
-                 <div className="flex items-center justify-between mb-2">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Briefing & Resource Links
-                     </label>
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">Reference / Asset URL</label>
+                 <div className="relative group">
+                    <LinkIcon className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                        type="url" 
+                        className="w-full pl-14 pr-8 py-5 bg-white border border-slate-200 rounded-[1.5rem] text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner placeholder-slate-300"
+                        placeholder="Paste link to reference doc or asset..."
+                        value={formData.taskLink || ''}
+                        onChange={e => setFormData({...formData, taskLink: e.target.value})}
+                    />
+                 </div>
+            </div>
+
+            <div>
+                 <div className="flex items-center justify-between mb-4 ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileText className="h-4 w-4" /> Tactical Briefing</label>
+                    <button type="button" onClick={() => setIsNotesExpanded(true)} className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2 hover:underline"><Maximize2 className="h-3 w-3" /> Fullscreen Editor</button>
                  </div>
                  <textarea 
-                    className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-sm text-gray-900 focus:ring-2 focus:ring-brand-500/20 resize-none h-40 shadow-sm"
-                    placeholder="Provide details or links for our team to execute this request..."
+                    className="w-full bg-white border border-slate-200 rounded-[2rem] p-8 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-inner h-40 resize-none"
+                    placeholder="Provide details for our team to execute..."
                     value={formData.description || ''}
                     onChange={e => setFormData({...formData, description: e.target.value})}
                  />
             </div>
 
-            <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
-                <button type="button" onClick={() => initialData ? setMode('view') : onClose()} className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-all">
-                    Cancel
-                </button>
-                <button type="submit" className="px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white bg-brand-600 hover:bg-brand-700 rounded-2xl shadow-xl shadow-brand-500/30 transition-all active:scale-95">
-                    Submit Request
+            <div className="flex justify-end gap-4 pt-8 border-t border-slate-100">
+                <button type="button" onClick={() => initialData ? setMode('view') : onClose()} className="px-8 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">Discard</button>
+                <button type="submit" className="px-10 py-4 bg-slate-950 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center gap-3">
+                    <Save className="h-4 w-4 text-indigo-400" /> Committ Identity
                 </button>
             </div>
       </form>
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
-        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transform transition-all scale-100" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-50">
-                <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">
-                    {mode === 'view' ? 'Request Overview' : 'New Milestone Request'}
+    <>
+    {isNotesExpanded && (
+        <div className="fixed inset-0 z-[110] bg-white/95 backdrop-blur-2xl flex flex-col animate-in fade-in duration-300">
+            <div className="flex items-center justify-between p-8 border-b border-slate-100">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-4"><FileText className="h-6 w-6 text-indigo-600" /> Deliverable Briefing</h3>
+                <button type="button" onClick={() => setIsNotesExpanded(false)} className="px-8 py-4 bg-slate-950 text-white rounded-2xl flex items-center gap-3 text-[11px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95"><Minimize2 className="h-4 w-4 text-indigo-400" /> Close Editor</button>
+            </div>
+            <div className="flex-1 p-12 max-w-5xl mx-auto w-full">
+                <textarea className="w-full h-full p-8 text-lg font-medium text-slate-700 bg-transparent border-none focus:ring-0 resize-none outline-none leading-relaxed" placeholder="Type technical requirements or asset links here..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} autoFocus />
+            </div>
+        </div>
+    )}
+
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+        <div className="bg-white/90 backdrop-blur-3xl rounded-[3.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-white/60 transform transition-all scale-100" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-white/40">
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                    {mode === 'view' ? 'Milestone Intel' : 'New Tactical Entry'}
                 </h2>
-                <div className="flex items-center gap-2">
-                    {/* Hiding Edit button for clients on existing tasks */}
+                <div className="flex items-center gap-3">
                     {mode === 'view' && !isClientView && (
-                        <button onClick={() => setMode('edit')} className="p-2 text-brand-600 hover:bg-brand-50 rounded-xl">
-                            <Edit2 className="h-5 w-5" />
+                        <button onClick={() => setMode('edit')} className="px-6 py-2.5 bg-slate-950 text-white rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                            <Edit2 className="h-4 w-4 text-indigo-400" /> Modify
                         </button>
                     )}
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">
-                        <X className="h-5 w-5" />
-                    </button>
+                    <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 transition-all"><X className="h-6 w-6" /></button>
                 </div>
             </div>
-            <div className="p-8 overflow-y-auto max-h-[85vh] custom-scrollbar">
+            <div className="p-10 pb-20 overflow-y-auto custom-scrollbar">
                 {mode === 'view' ? renderView() : renderEdit()}
             </div>
         </div>
     </div>
+    </>
   );
 };

@@ -1,73 +1,114 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Meeting } from '../../types';
-import { ChevronLeft, ChevronRight, Video, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Video, Clock, Plus } from 'lucide-react';
 import { getMeetingStatusStyles } from '../../utils';
 
 interface MeetingsCalendarProps {
   meetings: Meeting[];
   onEdit: (meeting: Meeting) => void;
+  onCreateAt?: (dateStr: string) => void;
 }
 
-export const MeetingsCalendar: React.FC<MeetingsCalendarProps> = ({ meetings, onEdit }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+export const MeetingsCalendar: React.FC<MeetingsCalendarProps> = ({ meetings, onEdit, onCreateAt }) => {
+    // Standardize view date to the 1st of the month to prevent day-overflow bugs
+    const [viewDate, setViewDate] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    });
 
-    const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
 
-    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const daysInMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
+    const firstDayIdx = useMemo(() => new Date(year, month, 1).getDay(), [year, month]);
+
+    const handlePrevMonth = () => setViewDate(new Date(year, month - 1, 1));
+    const handleNextMonth = () => setViewDate(new Date(year, month + 1, 1));
+
+    // Get today in IST YYYY-MM-DD
+    const todayStr = useMemo(() => {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    }, []);
 
     const renderCells = () => {
-        const totalDays = daysInMonth(currentDate);
-        const startDay = firstDayOfMonth(currentDate);
         const cells = [];
 
-        // Empty cells
-        for (let i = 0; i < startDay; i++) {
-            cells.push(<div key={`empty-${i}`} className="bg-gray-50/30 border-b border-r border-gray-100 min-h-[120px]" />);
+        // Padding cells for previous month
+        for (let i = 0; i < firstDayIdx; i++) {
+            cells.push(
+                <div key={`empty-${i}`} className="bg-slate-50/20 border-b border-r border-slate-100 min-h-[100px] lg:min-h-[140px]" />
+            );
         }
 
-        // Days
-        for (let day = 1; day <= totalDays; day++) {
-            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayMeetings = meetings.filter(m => m.dateTime.startsWith(dateStr));
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
-
-            // Sort by time
-            dayMeetings.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+        // Current month cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const isToday = todayStr === dateStr;
+            
+            // Filter and sort meetings for this day
+            const dayMeetings = meetings
+                .filter(m => m.dateTime.startsWith(dateStr))
+                .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
 
             cells.push(
-                <div key={day} className={`border-b border-r border-gray-100 min-h-[120px] p-2 hover:bg-gray-50 transition-colors group ${isToday ? 'bg-blue-50/30' : ''}`}>
-                    <div className="flex justify-between items-start mb-1">
-                        <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-brand-600 text-white' : 'text-gray-500'}`}>
+                <div 
+                    key={day} 
+                    className={`group relative border-b border-r border-slate-100 min-h-[100px] lg:min-h-[140px] p-2 transition-all hover:bg-white/60 ${isToday ? 'bg-indigo-50/20' : 'bg-white/40'}`}
+                >
+                    <div className="flex justify-between items-start mb-2">
+                        <span className={`flex items-center justify-center w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                            isToday ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 group-hover:text-slate-900'
+                        }`}>
                             {day}
                         </span>
-                        {dayMeetings.length > 0 && (
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 rounded-md">
-                                {dayMeetings.length}
-                            </span>
+                        
+                        {onCreateAt && (
+                            <button 
+                                onClick={() => onCreateAt(dateStr)}
+                                className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-300 rounded-lg transition-all"
+                                title="Schedule on this day"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </button>
                         )}
                     </div>
-                    <div className="space-y-1.5 overflow-y-auto max-h-[100px] custom-scrollbar">
-                        {dayMeetings.map(meeting => (
+
+                    <div className="space-y-1.5 overflow-hidden">
+                        {dayMeetings.slice(0, 3).map(meeting => (
                             <button 
                                 key={meeting.id} 
-                                type="button"
-                                onClick={() => onEdit(meeting)}
-                                className={`w-full text-left p-1.5 rounded-lg border text-[10px] shadow-sm transition-all hover:shadow-md hover:scale-[1.02] ${getMeetingStatusStyles(meeting.status)} bg-white`}
+                                onClick={(e) => { e.stopPropagation(); onEdit(meeting); }}
+                                className={`w-full text-left p-1.5 rounded-xl border text-[10px] shadow-sm transition-all hover:scale-[1.02] hover:shadow-md active:scale-95 ${getMeetingStatusStyles(meeting.status)} bg-white/80 backdrop-blur-sm`}
                             >
-                                <div className="font-bold truncate text-gray-800">{meeting.title}</div>
-                                <div className="flex items-center gap-1 mt-0.5 opacity-80">
-                                    <Clock className="h-3 w-3" />
+                                <div className="font-black truncate tracking-tighter uppercase leading-tight">{meeting.title}</div>
+                                <div className="flex items-center gap-1 mt-0.5 opacity-60 font-bold">
+                                    <Clock className="h-2.5 w-2.5" />
                                     <span>
-                                        {new Date(meeting.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                        {new Date(meeting.dateTime).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                                     </span>
                                 </div>
                             </button>
                         ))}
+                        
+                        {dayMeetings.length > 3 && (
+                            <button 
+                                onClick={() => onEdit(dayMeetings[3])}
+                                className="w-full text-center py-1 text-[9px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors"
+                            >
+                                +{dayMeetings.length - 3} more syncs
+                            </button>
+                        )}
                     </div>
                 </div>
+            );
+        }
+
+        // Padding cells for next month to keep a perfect grid (typically 42 cells total for 6 rows)
+        const totalVisibleCells = firstDayIdx + daysInMonth;
+        const nextMonthPadding = (7 - (totalVisibleCells % 7)) % 7;
+        for (let i = 0; i < nextMonthPadding; i++) {
+            cells.push(
+                <div key={`empty-next-${i}`} className="bg-slate-50/20 border-b border-r border-slate-100 min-h-[100px] lg:min-h-[140px]" />
             );
         }
 
@@ -75,28 +116,61 @@ export const MeetingsCalendar: React.FC<MeetingsCalendarProps> = ({ meetings, on
     };
 
     return (
-        <div className="bg-white rounded-2xl h-full flex flex-col border border-gray-100">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                    <Video className="h-5 w-5 text-brand-600" />
-                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </h2>
-                <div className="flex gap-1">
-                    <button type="button" onClick={handlePrevMonth} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><ChevronLeft className="h-5 w-5" /></button>
-                    <button type="button" onClick={handleNextMonth} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><ChevronRight className="h-5 w-5" /></button>
+        <div className="bg-white/40 backdrop-blur-2xl rounded-[3rem] border border-white shadow-premium flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between p-6 lg:p-8 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-950 flex items-center justify-center text-indigo-400 shadow-xl ring-1 ring-white/10 shrink-0">
+                        <Video className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                            {viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Operational Timeline</p>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/40 shadow-inner">
+                    <button 
+                        onClick={handlePrevMonth} 
+                        className="p-3 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-xl transition-all shadow-sm active:scale-90"
+                    >
+                        <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button 
+                        onClick={() => setViewDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+                        className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+                    >
+                        Current Cycle
+                    </button>
+                    <button 
+                        onClick={handleNextMonth} 
+                        className="p-3 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-xl transition-all shadow-sm active:scale-90"
+                    >
+                        <ChevronRight className="h-5 w-5" />
+                    </button>
                 </div>
             </div>
             
-            <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
+            <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/30">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                    <div key={d} className="py-2 text-center text-xs font-bold text-gray-400 uppercase tracking-wide">
+                    <div key={d} className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
                         {d}
                     </div>
                 ))}
             </div>
             
-            <div className="grid grid-cols-7 flex-1 auto-rows-fr border-l border-t border-gray-100">
+            <div className="grid grid-cols-7 flex-1 auto-rows-fr overflow-y-auto no-scrollbar border-l border-slate-100">
                 {renderCells()}
+            </div>
+
+            <div className="p-4 bg-white/20 border-t border-slate-100 flex justify-center gap-8">
+                {['Scheduled', 'Completed', 'Cancelled'].map(status => (
+                    <div key={status} className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${getMeetingStatusStyles(status as any)} border-none shadow-sm`} />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{status}</span>
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -12,55 +12,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to manually decode JWT (since we don't have jwt-decode library installed in this env)
-const isTokenExpired = (token: string): boolean => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    const { exp } = JSON.parse(jsonPayload);
-    
-    // Check if expired (exp is in seconds, Date.now() is ms)
-    if (exp && Date.now() >= exp * 1000) {
-      return true;
-    }
-    return false;
-  } catch (error) {
-    return true; // Assume expired if invalid
-  }
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize state directly from localStorage to avoid initial render redirect issues
   const [token, setToken] = useState<string | null>(() => {
-      const storedToken = localStorage.getItem('token');
-      return storedToken;
+      return localStorage.getItem('token');
   });
   
   const [user, setUser] = useState<User | null>(() => {
-      const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser) : null;
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
   });
-
-  // Validate token on mount
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    
-    if (storedToken) {
-      if (isTokenExpired(storedToken)) {
-        // Token expired while app was closed or during refresh validation
-        console.warn("Session expired. Clearing storage.");
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-      }
-      // If valid, state is already set by lazy initialization
-    }
-  }, []);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
@@ -74,20 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    // Note: Router components listening to isAuthenticated will automatically redirect
+    // Optional: Force redirect if needed, but router usually handles it via protected routes
   }, []);
-
-  // Listen for 401/403 events from api.ts
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      logout();
-    };
-
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => {
-      window.removeEventListener('auth:unauthorized', handleUnauthorized);
-    };
-  }, [logout]);
 
   const isAuthenticated = !!token && !!user;
 

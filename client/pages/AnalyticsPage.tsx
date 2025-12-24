@@ -5,6 +5,7 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { PieChart, BarChart, TrendingUp, Lock, Download, FileText, CheckSquare, Users, DollarSign, Layers, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useLayout } from '../context/LayoutContext';
 import { crmApi, tasksApi, usersApi } from '../services/api';
 import { formatMoney, exportToCSV } from '../utils';
 import { CRMEntry } from '../types';
@@ -16,6 +17,7 @@ interface AnalyticsPageProps {
 export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { isSidebarCollapsed } = useLayout();
     const [entries, setEntries] = useState<CRMEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
@@ -88,7 +90,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
                     if (!statsMap[assignee]) statsMap[assignee] = { Name: assignee, Role: 'External', Total: 0, Completed: 0, Pending: 0 };
                     
                     statsMap[assignee].Total++;
-                    if (['Completed', 'Done'].includes(t.status)) statsMap[assignee].Completed++;
+                    if (['Completed', 'Done', 'Posted'].includes(t.status)) statsMap[assignee].Completed++;
                     else statsMap[assignee].Pending++;
                 });
 
@@ -155,89 +157,94 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
     const totalDeals = entries.length;
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
+        <div className="flex min-h-screen mesh-bg relative">
+            <div className="glass-canvas" />
             <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
                 <Navbar />
                 
-                <main className="flex-1 p-8 overflow-y-auto custom-scrollbar h-[calc(100vh-80px)]">
-                     <div className="mb-8">
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{title}</h1>
-                        <p className="text-gray-500 mt-2 font-medium">Analytics engine for revenue distribution and pipeline health.</p>
+                <main className="flex-1 px-4 lg:px-12 py-6 lg:py-10 pb-32">
+                     <div className="mb-10 lg:mb-16 animate-premium">
+                        <h1 className="text-4xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-none display-text">{title}</h1>
+                        <p className="text-sm lg:text-lg text-slate-500 mt-4 lg:mt-6 font-medium max-w-xl">Analytics engine for revenue distribution and pipeline health.</p>
                      </div>
 
-                     <div className="bg-white rounded-[2.5rem] border border-gray-200/60 shadow-sm mb-10 overflow-hidden">
-                        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                            <div className="p-8 group hover:bg-gray-50/30 transition-colors">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:scale-110 transition-transform duration-300"><TrendingUp className="h-6 w-6" /></div>
-                                    <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg"><ArrowUpRight className="h-3 w-3" /> Live</span>
+                     <div className="bg-white/40 backdrop-blur-3xl rounded-[2rem] lg:rounded-[3rem] border border-white shadow-premium mb-8 lg:mb-12 overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200/50">
+                            <div className="p-6 lg:p-10 group hover:bg-white/40 transition-colors">
+                                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                                    <div className="p-3 lg:p-4 bg-emerald-50 text-emerald-600 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform duration-300 border border-emerald-100/50"><TrendingUp className="h-5 lg:h-6 w-5 lg:w-6" /></div>
+                                    <span className="flex items-center gap-2 text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 lg:px-3 py-1 rounded-xl border border-emerald-100"><ArrowUpRight className="h-3 w-3" /> Live</span>
                                 </div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pipeline Value</p>
-                                <h3 className="text-3xl font-black text-gray-900 tracking-tight">{isLoading ? '...' : formatMoney(totalRevenue)}</h3>
+                                <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Total Pipeline Value</p>
+                                <h3 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter">{isLoading ? '...' : formatMoney(totalRevenue)}</h3>
                             </div>
-                            <div className="p-8 group hover:bg-gray-50/30 transition-colors">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform duration-300"><PieChart className="h-6 w-6" /></div>
+                            <div className="p-6 lg:p-10 group hover:bg-white/40 transition-colors">
+                                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                                    <div className="p-3 lg:p-4 bg-blue-50 text-blue-600 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform duration-300 border border-blue-100/50"><PieChart className="h-5 lg:h-6 w-5 lg:w-6" /></div>
                                 </div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Win Rate</p>
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-3xl font-black text-gray-900 tracking-tight">{isLoading ? '...' : `${conversionRate.toFixed(1)}%`}</h3>
-                                    <span className="text-sm font-medium text-gray-500">of {entries.length} leads</span>
+                                <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Win Rate</p>
+                                <div className="flex items-baseline gap-3">
+                                    <h3 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter">{isLoading ? '...' : `${conversionRate.toFixed(1)}%`}</h3>
+                                    <span className="text-[10px] lg:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">of {entries.length} leads</span>
                                 </div>
                             </div>
-                            <div className="p-8 group hover:bg-gray-50/30 transition-colors">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl group-hover:scale-110 transition-transform duration-300"><BarChart className="h-6 w-6" /></div>
+                            <div className="p-6 lg:p-10 group hover:bg-white/40 transition-colors">
+                                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                                    <div className="p-3 lg:p-4 bg-purple-50 text-purple-600 rounded-2xl lg:rounded-3xl group-hover:scale-110 transition-transform duration-300 border border-purple-100/50"><BarChart className="h-5 lg:h-6 w-5 lg:w-6" /></div>
                                 </div>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Avg Deal Size</p>
-                                <h3 className="text-3xl font-black text-gray-900 tracking-tight">{isLoading ? '...' : formatMoney(avgDealSize)}</h3>
+                                <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Avg Deal Size</p>
+                                <h3 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter">{isLoading ? '...' : formatMoney(avgDealSize)}</h3>
                             </div>
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                                <div className="p-2 bg-green-50 rounded-lg text-green-600"><DollarSign className="h-5 w-5" /></div>
-                                Revenue by Source <span className="text-xs font-medium text-gray-400 font-sans ml-auto">Active Sources Only</span>
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 mb-8 lg:mb-12">
+                        <div className="bg-white/40 backdrop-blur-3xl p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] border border-white shadow-premium">
+                            <h3 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight mb-6 lg:mb-8 flex items-center gap-4">
+                                <div className="p-2 lg:p-3 bg-green-50 rounded-2xl text-green-600 border border-green-100/50"><DollarSign className="h-5 lg:h-6 w-5 lg:w-6" /></div>
+                                Revenue by Source <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-auto bg-white px-3 py-1 rounded-xl border border-slate-100">Active Sources</span>
                             </h3>
-                            <div className="space-y-6">
+                            <div className="space-y-4 lg:space-y-6">
                                 {sortedSources.map(([source, value]) => (
                                     <div key={source}>
-                                        <div className="flex justify-between text-sm font-bold mb-2">
-                                            <span className="text-gray-700">{source}</span>
-                                            <span className="text-gray-900">{formatMoney(value)}</span>
+                                        <div className="flex justify-between text-[10px] lg:text-xs font-bold uppercase tracking-wide mb-2">
+                                            <span className="text-slate-700">{source}</span>
+                                            <span className="text-slate-900">{formatMoney(value)}</span>
                                         </div>
-                                        <div className="w-full bg-gray-50 rounded-full h-3 overflow-hidden">
+                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
                                             <div 
-                                                className="bg-brand-600 h-full rounded-full transition-all duration-1000 ease-out" 
+                                                className="bg-gradient-to-r from-brand-600 to-indigo-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(79,70,229,0.3)]" 
                                                 style={{ width: `${(value / maxSourceRevenue) * 100}%` }}
                                             ></div>
                                         </div>
                                     </div>
                                 ))}
-                                {sortedSources.length === 0 && <div className="py-10 text-center text-gray-400 italic">No revenue-generating sources found.</div>}
+                                {sortedSources.length === 0 && <div className="py-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">No revenue data available</div>}
                             </div>
                         </div>
 
-                        <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Layers className="h-5 w-5" /></div>
+                        <div className="bg-white/40 backdrop-blur-3xl p-6 lg:p-10 rounded-[2rem] lg:rounded-[3rem] border border-white shadow-premium">
+                            <h3 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight mb-6 lg:mb-8 flex items-center gap-4">
+                                <div className="p-2 lg:p-3 bg-blue-50 rounded-2xl text-blue-600 border border-blue-100/50"><Layers className="h-5 lg:h-6 w-5 lg:w-6" /></div>
                                 Pipeline Health
                             </h3>
-                            <div className="space-y-4">
+                            <div className="space-y-3 lg:space-y-4">
                                 {Object.entries(statusCounts).map(([status, count]) => (
-                                    <div key={status} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/80 border border-gray-100 hover:bg-white transition-all group">
-                                        <div className="flex items-center gap-3">
-                                            <span className={`w-3 h-3 rounded-full shadow-sm ${
-                                                status === 'onboarded' ? 'bg-green-500' : status === 'drop' ? 'bg-red-500' : status === 'lead' ? 'bg-blue-500' : 'bg-amber-500'
+                                    <div key={status} className="flex items-center justify-between p-4 lg:p-5 rounded-[1.5rem] bg-white border border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                                        <div className="flex items-center gap-4">
+                                            <span className={`w-3 h-3 rounded-full shadow-lg ${
+                                                status === 'onboarded' ? 'bg-green-500 shadow-green-200' : 
+                                                status === 'drop' ? 'bg-red-500 shadow-red-200' : 
+                                                status === 'lead' ? 'bg-blue-500 shadow-blue-200' : 
+                                                status === 'completed' ? 'bg-indigo-500 shadow-indigo-200' :
+                                                'bg-amber-500 shadow-amber-200'
                                             }`} />
-                                            <span className="text-sm font-bold text-gray-700 capitalize">{status}</span>
+                                            <span className="text-[10px] lg:text-[11px] font-black text-slate-700 uppercase tracking-widest">{status}</span>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-base font-black text-gray-900">{count}</span>
-                                            <span className="text-xs text-gray-400 font-medium w-12 text-right bg-white px-2 py-1 rounded-md border border-gray-100">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-lg lg:text-xl font-black text-slate-900">{count}</span>
+                                            <span className="text-[9px] lg:text-[10px] font-bold text-slate-400 w-12 text-right bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
                                                 {totalDeals > 0 ? ((count / totalDeals) * 100).toFixed(0) : 0}%
                                             </span>
                                         </div>
@@ -248,16 +255,21 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ title }) => {
                      </div>
 
                      <div>
-                        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><FileText className="h-5 w-5 text-gray-400" /> Data Management</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <h2 className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight mb-6 lg:mb-8 flex items-center gap-3"><FileText className="h-5 lg:h-6 w-5 lg:w-6 text-slate-400" /> Data Management</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                             {[
                                 { id: 'crm', icon: Users, label: 'Export CRM Data', desc: 'Full lead database', color: 'blue' },
                                 { id: 'tasks', icon: CheckSquare, label: 'Export Tasks', desc: 'Task history & logs', color: 'orange' },
                                 { id: 'performance', icon: BarChart, label: 'Team Stats', desc: 'Efficiency reports', color: 'purple' }
                             ].map((item) => (
-                                <button key={item.id} onClick={() => handleExport(item.id as any)} className="group bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all text-left flex items-start gap-5 hover:-translate-y-1">
-                                    <div className={`h-12 w-12 bg-${item.color}-50 text-${item.color}-600 rounded-2xl flex items-center justify-center flex-shrink-0`}><item.icon className="h-6 w-6" /></div>
-                                    <div><h3 className="font-bold text-gray-900 text-lg">{item.label}</h3><p className="text-xs text-gray-500 mt-1 mb-4 font-medium">{item.desc}</p><span className={`text-xs font-bold text-${item.color}-600 flex items-center gap-1 group-hover:underline`}>Download CSV <Download className="h-3 w-3" /></span></div>
+                                <button key={item.id} onClick={() => handleExport(item.id as any)} className={`group bg-white p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all text-left flex items-start gap-4 lg:gap-6 hover:-translate-y-2 relative overflow-hidden`}>
+                                    <div className={`absolute inset-0 bg-${item.color}-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+                                    <div className={`h-12 w-12 lg:h-14 lg:w-14 bg-${item.color}-50 text-${item.color}-600 rounded-3xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 relative z-10 shadow-sm`}><item.icon className="h-6 lg:h-7 w-6 lg:w-7" /></div>
+                                    <div className="relative z-10">
+                                        <h3 className="font-black text-slate-900 text-base lg:text-lg tracking-tight">{item.label}</h3>
+                                        <p className="text-[10px] lg:text-[11px] font-medium text-slate-500 mt-1 mb-4 lg:mb-6 uppercase tracking-wide">{item.desc}</p>
+                                        <span className={`text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] text-${item.color}-600 flex items-center gap-2 group-hover:translate-x-2 transition-transform`}>Download CSV <Download className="h-3 w-3" /></span>
+                                    </div>
                                 </button>
                             ))}
                         </div>

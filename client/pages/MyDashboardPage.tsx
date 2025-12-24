@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '../components/layout/Navbar';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
 import { tasksApi, meetingsApi } from '../services/api';
 import { Task, Meeting } from '../types';
 import { 
@@ -24,8 +24,12 @@ import {
 import { Link } from 'react-router-dom';
 import { formatDate } from '../utils';
 
+// Hoist formatter to avoid expensive re-instantiation on every render
+const DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' });
+
 export const MyDashboardPage: React.FC = () => {
     const { user } = useAuth();
+    const { isSidebarCollapsed } = useLayout();
     const [allTasks, setAllTasks] = useState<Task[]>([]);
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +42,7 @@ export const MyDashboardPage: React.FC = () => {
         const loadData = async () => {
             setIsLoading(true);
             try {
+                // Parallel fetch for speed
                 const [tasksData, meetingsData] = await Promise.all([
                     tasksApi.getAll(),
                     meetingsApi.getAll()
@@ -46,9 +51,6 @@ export const MyDashboardPage: React.FC = () => {
                 // Filter tasks assigned to user
                 const myTasks = tasksData.filter(t => t.assignedTo === user?.name);
                 setAllTasks(myTasks);
-
-                // Meetings: Keep all, user might want to see team meetings or filter later
-                // For now, let's just use all meetings for the calendar dots
                 setMeetings(meetingsData);
 
             } catch (e) {
@@ -60,23 +62,24 @@ export const MyDashboardPage: React.FC = () => {
         loadData();
     }, [user]);
 
-    // --- Derived Metrics & Data ---
+    // --- Derived Metrics & Data (Memoized for Performance) ---
 
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-    const activeTasks = allTasks.filter(t => !['Completed', 'Done', 'Dropped'].includes(t.status));
-    const completedTasks = allTasks.filter(t => ['Completed', 'Done'].includes(t.status));
+    const todayStr = useMemo(() => DATE_FORMATTER.format(new Date()), []);
     
-    // Hero Section Data: Next Meeting or High Priority Task
-    const upcomingMeetings = meetings
-        .filter(m => new Date(m.dateTime) >= new Date() && m.status !== 'Cancelled')
-        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
-    
-    const nextMeeting = upcomingMeetings[0];
-    
-    // Efficiency Score
-    const efficiency = allTasks.length > 0 
-        ? Math.round((completedTasks.length / allTasks.length) * 100) 
-        : 0;
+    const { activeTasks, completedTasks, efficiency } = useMemo(() => {
+        const active = allTasks.filter(t => !['Completed', 'Done', 'Dropped'].includes(t.status));
+        const completed = allTasks.filter(t => ['Completed', 'Done'].includes(t.status));
+        const eff = allTasks.length > 0 ? Math.round((completed.length / allTasks.length) * 100) : 0;
+        return { activeTasks: active, completedTasks: completed, efficiency: eff };
+    }, [allTasks]);
+
+    const nextMeeting = useMemo(() => {
+        const now = new Date();
+        const upcoming = meetings
+            .filter(m => new Date(m.dateTime) >= now && m.status !== 'Cancelled')
+            .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+        return upcoming[0];
+    }, [meetings]);
 
     // Greeting Logic
     const greeting = useMemo(() => {
@@ -86,37 +89,39 @@ export const MyDashboardPage: React.FC = () => {
         return 'Good Evening';
     }, []);
 
-    const currentDateDisplay = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const currentDateDisplay = useMemo(() => 
+        new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }), 
+    []);
 
     // Sorted Priority Tasks (Top 5 for Queue)
     const priorityTasks = useMemo(() => {
-        const weight = { 'High': 3, 'Medium': 2, 'Low': 1 };
+        const weight: Record<string, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
         return [...activeTasks].sort((a, b) => {
+            // Due today comes first
             if (a.dueDate === todayStr && b.dueDate !== todayStr) return -1;
             if (b.dueDate === todayStr && a.dueDate !== todayStr) return 1;
             
+            // Then priority
             const weightDiff = weight[b.priority] - weight[a.priority];
             if (weightDiff !== 0) return weightDiff;
             
+            // Then date
             return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         }).slice(0, 5);
     }, [activeTasks, todayStr]);
 
     // --- Calendar Logic ---
-    const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-
     const handlePrevMonth = () => setCalendarViewDate(new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1));
     const handleNextMonth = () => setCalendarViewDate(new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1));
 
-    const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+    const selectedDateStr = useMemo(() => 
+        `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`,
+    [selectedDate]);
 
     // Agenda for Selected Date
     const agendaItems = useMemo(() => {
-        const dateStr = selectedDateStr; // YYYY-MM-DD
-        
-        const dayMeetings = meetings.filter(m => m.dateTime.startsWith(dateStr));
-        const dayTasks = allTasks.filter(t => t.dueDate === dateStr && !['Completed', 'Done'].includes(t.status));
+        const dayMeetings = meetings.filter(m => m.dateTime.startsWith(selectedDateStr));
+        const dayTasks = allTasks.filter(t => t.dueDate === selectedDateStr && !['Completed', 'Done'].includes(t.status));
 
         return {
             meetings: dayMeetings.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()),
@@ -124,31 +129,40 @@ export const MyDashboardPage: React.FC = () => {
         };
     }, [selectedDateStr, meetings, allTasks]);
 
-    // Calendar Render
-    const renderCalendar = () => {
-        const totalDays = daysInMonth(calendarViewDate);
-        const startDay = firstDayOfMonth(calendarViewDate);
+    // Pre-calculate event existence for calendar grid O(1) lookup
+    const { meetingDates, taskDates } = useMemo(() => {
+        const mDates = new Set(meetings.map(m => m.dateTime.split('T')[0]));
+        const tDates = new Set(allTasks.filter(t => !['Completed', 'Done'].includes(t.status)).map(t => t.dueDate));
+        return { meetingDates: mDates, taskDates: tDates };
+    }, [meetings, allTasks]);
+
+    // Calendar Grid (Memoized)
+    const calendarGrid = useMemo(() => {
+        const year = calendarViewDate.getFullYear();
+        const month = calendarViewDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startDay = new Date(year, month, 1).getDay();
         const cells = [];
 
-        // Empty cells
+        // Empty cells for padding
         for (let i = 0; i < startDay; i++) {
             cells.push(<div key={`empty-${i}`} className="h-10 w-10" />);
         }
 
-        // Days
-        for (let day = 1; day <= totalDays; day++) {
-            const dateStr = `${calendarViewDate.getFullYear()}-${String(calendarViewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // Day cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const isToday = todayStr === dateStr;
             const isSelected = selectedDateStr === dateStr;
             
-            // Check for events
-            const hasMeeting = meetings.some(m => m.dateTime.startsWith(dateStr));
-            const hasTask = allTasks.some(t => t.dueDate === dateStr && !['Completed', 'Done'].includes(t.status));
+            // Fast lookup
+            const hasMeeting = meetingDates.has(dateStr);
+            const hasTask = taskDates.has(dateStr);
 
             cells.push(
                 <button
                     key={day}
-                    onClick={() => setSelectedDate(new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth(), day))}
+                    onClick={() => setSelectedDate(new Date(year, month, day))}
                     className={`h-10 w-10 rounded-xl flex flex-col items-center justify-center relative transition-all duration-200 ${
                         isSelected 
                         ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30' 
@@ -166,14 +180,14 @@ export const MyDashboardPage: React.FC = () => {
             );
         }
         return cells;
-    };
+    }, [calendarViewDate, meetingDates, taskDates, selectedDateStr, todayStr]);
 
     // Loading Skeleton
     if (isLoading) {
         return (
             <div className="flex min-h-screen bg-slate-50">
                 <Sidebar />
-                <div className="flex-1 flex flex-col">
+                <div className={`flex-1 flex flex-col transition-all duration-500 ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
                     <Navbar />
                     <div className="p-8 space-y-8">
                         <div className="h-16 bg-gray-100 rounded-xl w-1/3 animate-pulse" />
@@ -191,15 +205,16 @@ export const MyDashboardPage: React.FC = () => {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
+        <div className="flex min-h-screen mesh-bg relative">
+            <div className="glass-canvas" />
             <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
                 <Navbar />
                 
                 <main className="flex-1 p-4 md:p-6 lg:p-10 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] md:h-[calc(100vh-80px)]">
                     
                     {/* Header */}
-                    <div className="mb-8 md:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="mb-8 md:mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-premium">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="h-px w-8 bg-brand-300"></span>
@@ -360,7 +375,7 @@ export const MyDashboardPage: React.FC = () => {
                                     ))}
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
-                                    {renderCalendar()}
+                                    {calendarGrid}
                                 </div>
 
                                 {/* Agenda Section */}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -19,7 +18,6 @@ import { MyDashboardPage } from './pages/MyDashboardPage';
 import { ClientPortalPage } from './pages/ClientPortalPage';
 import { GamePage } from './pages/GamePage';
 import { ProfilePage } from './pages/ProfilePage';
-import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -164,20 +162,13 @@ const AppRoutes = () => {
                     </OperationalRoute>
                 } />
 
-                {/* Profile & Settings (Accessible by all logged in users) */}
+                {/* Profile (Accessible by all logged in users) */}
                 <Route path="/profile" element={
                     <PrivateRoute>
                         <ProfilePage />
                     </PrivateRoute>
                 } />
                 
-                {/* Settings - SUPER ADMIN ONLY */}
-                <Route path="/settings" element={
-                    <SuperAdminRoute>
-                        <SettingsPage />
-                    </SuperAdminRoute>
-                } />
-
                 {/* CRM (Super Admin + Admin) */}
                 <Route path="/crm" element={
                     <AdminRoute>

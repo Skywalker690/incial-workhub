@@ -1,268 +1,211 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Search, Bell, LogOut, ChevronDown, User, Menu, LayoutDashboard, Users, CalendarDays, CheckSquare, Calendar, Briefcase, ListTodo, PieChart, BarChart2, Home, PanelLeft, Gamepad2, Plus, Shield, Inbox } from 'lucide-react';
+import { Bell, ChevronDown, PanelLeft, Plus, Search, User, LogOut, Shield, Sparkles, CheckCircle2, Gamepad2, Calendar, Zap, HelpCircle } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLayout } from '../../context/LayoutContext';
-
-const MobileNavItem = ({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) => (
-  <Link
-    to={to}
-    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-      active 
-        ? 'bg-brand-50 text-brand-700' 
-        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-    }`}
-  >
-    <Icon className={`h-5 w-5 ${active ? 'text-brand-600' : 'text-gray-400'}`} />
-    {label}
-  </Link>
-);
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const { toggleSidebar } = useLayout();
   const location = useLocation();
+  const navigate = useNavigate();
+  
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   
   const profileRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
+  const notifyRef = useRef<HTMLDivElement>(null);
 
-  const currentPath = location.pathname;
-  
-  const role = user?.role;
-  const isSuperAdmin = role === 'ROLE_SUPER_ADMIN';
-  const isAdmin = role === 'ROLE_ADMIN' || isSuperAdmin;
-  const isEmployee = role === 'ROLE_EMPLOYEE' || isAdmin;
-  const isClient = role === 'ROLE_CLIENT';
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [currentPath]);
-
+  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
+      if (notifyRef.current && !notifyRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getPageTitle = () => {
-    if (currentPath === '/dashboard') return 'Dashboard';
-    if (currentPath === '/crm') return 'CRM Pipeline';
-    if (currentPath.startsWith('/tasks')) return 'Tasks Board';
-    if (currentPath.startsWith('/companies')) return 'Companies Registry';
-    if (currentPath.startsWith('/meetings')) return 'Meeting Tracker';
-    if (currentPath.startsWith('/calendar')) return 'Universal Calendar';
-    if (currentPath.startsWith('/client-tracker')) return 'Client Projects';
-    if (currentPath === '/reports') return 'Analytics Reports';
-    if (currentPath === '/admin/performance') return 'Team Performance';
-    if (currentPath === '/admin/users') return 'User Management';
-    if (currentPath === '/profile') return 'My Profile';
-    if (currentPath === '/break') return 'Focus Break';
-    if (currentPath === '/portal') return 'Project Portal';
-    return 'Incial CRM';
+  // Close dropdowns on route change
+  useEffect(() => {
+    setIsProfileOpen(false);
+    setIsNotificationsOpen(false);
+  }, [location.pathname]);
+
+  const getPageContext = () => {
+      const path = location.pathname;
+      if (path === '/dashboard') return 'Operational Intel';
+      if (path === '/crm') return 'Market Pipeline';
+      if (path.startsWith('/tasks')) return 'Execution Workflow';
+      if (path === '/portal') return 'Client Interface';
+      if (path === '/calendar') return 'Temporal Registry';
+      return 'Workhub OS';
   };
 
   return (
-    <header className="h-[64px] md:h-[72px] bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40 transition-all shadow-[0_2px_12px_-4px_rgba(0,0,0,0.02)]">
+    <header className="h-[80px] lg:h-[110px] flex items-center justify-between px-4 lg:px-10 sticky top-0 z-40 bg-transparent pointer-events-none">
       
-      <div className="flex items-center gap-3 lg:gap-6 flex-1 max-w-2xl">
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-
+      {/* Context HUD */}
+      <div className="flex items-center gap-3 lg:gap-8 flex-1 max-w-3xl pointer-events-auto">
           <button 
             onClick={toggleSidebar}
-            className="hidden md:flex p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all active:scale-95"
-            title="Toggle Sidebar"
+            className="p-3 lg:p-4 text-slate-500 hover:text-brand-600 glass-panel rounded-2xl lg:rounded-3xl transition-all shadow-premium active:scale-95 group border-white/40"
           >
-            <PanelLeft className="h-5 w-5" />
+            <PanelLeft className="h-5 w-5 lg:h-6 lg:w-6 group-hover:rotate-180 transition-transform duration-500" />
           </button>
 
-          <div className="flex-1 flex items-center gap-4 min-w-0">
-             <span className="md:hidden text-lg font-bold text-gray-900 truncate">
-                {getPageTitle()}
-             </span>
-
-             <div className="relative w-full max-w-md hidden md:block group">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-brand-600 transition-colors" />
-                </div>
+          <div className="flex-1 flex flex-col">
+             <div className="flex items-center gap-2 mb-0.5 lg:mb-1">
+                 <div className="h-1 lg:h-1.5 w-1 lg:w-1.5 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                 <span className="text-[9px] lg:text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] lg:tracking-[0.4em] truncate">{getPageContext()}</span>
+             </div>
+             <div className="relative group hidden sm:block">
+                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
                 <input
                     type="text"
-                    placeholder={`Search in ${getPageTitle()}...`}
-                    className="w-full pl-10 pr-12 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 focus:bg-white transition-all shadow-sm"
+                    placeholder="Deep Search... (⌘K)"
+                    className="w-full pl-6 lg:pl-8 pr-4 lg:pr-12 py-1 lg:py-2 bg-transparent text-sm lg:text-lg font-bold text-slate-900 placeholder-slate-300 border-none focus:ring-0 focus:outline-none transition-all"
                 />
              </div>
           </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-3 lg:gap-6 ml-auto">
-        {!isClient && (
-            <div className="hidden sm:flex items-center gap-3">
-                <Link 
-                    to="/tasks"
-                    className="flex items-center gap-2 px-3.5 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200/50 rounded-xl transition-all active:scale-95 group"
-                >
-                    <div className="bg-white rounded-md p-0.5 shadow-sm group-hover:shadow text-brand-600">
-                        <Plus className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wide">New</span>
-                </Link>
-
-                <Link 
-                    to="/calendar"
-                    className="p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 rounded-xl transition-all active:scale-95"
-                >
-                    <CalendarDays className="h-5 w-5" />
-                </Link>
-            </div>
-        )}
-
-        <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
-
-        <div className="relative" ref={notifRef}>
-            <button 
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className={`relative p-2 rounded-xl transition-all duration-200 ${isNotifOpen ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+      {/* Action Controls */}
+      <div className="flex items-center gap-3 lg:gap-6 ml-auto pointer-events-auto">
+        <div className="flex items-center gap-2 lg:gap-5">
+            <Link 
+                to="/tasks"
+                className="hidden sm:flex items-center gap-3 px-4 lg:px-6 py-2.5 lg:py-3.5 bg-slate-950 text-white rounded-2xl lg:rounded-3xl shadow-2xl hover:scale-[1.03] active:scale-95 transition-all group overflow-hidden relative"
             >
-                <Bell className="h-5 w-5" />
-            </button>
-            
-            {isNotifOpen && (
-                <div className="absolute right-[-60px] md:right-0 top-full mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50">
-                    <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                        <h3 className="font-bold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="p-10 flex flex-col items-center justify-center text-center">
-                        <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mb-4 border border-gray-100">
-                            <Inbox className="h-8 w-8" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Plus className="h-4 w-4 lg:h-5 lg:w-5 text-indigo-400 relative z-10 group-hover:rotate-90 transition-transform duration-300" />
+                <span className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] relative z-10 hidden xl:block">Deploy</span>
+            </Link>
+
+            <div className="h-6 lg:h-8 w-px bg-slate-200/60 hidden sm:block"></div>
+
+            {/* Universal Calendar Shortcut */}
+            <Link 
+                to="/calendar"
+                className={`p-3 lg:p-4 glass-panel rounded-2xl lg:rounded-3xl shadow-premium transition-all relative group border-white/40 ${location.pathname === '/calendar' ? 'bg-white/80 ring-2 ring-indigo-500/20 text-indigo-600 shadow-glass-glow' : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'}`}
+                title="Universal Calendar"
+            >
+                <Calendar className={`h-5 w-5 lg:h-6 lg:w-6 ${location.pathname === '/calendar' ? 'text-indigo-600' : 'group-hover:scale-110'} transition-all`} />
+            </Link>
+
+            <div className="relative" ref={notifyRef}>
+                <button 
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    className={`p-3 lg:p-4 glass-panel rounded-2xl lg:rounded-3xl shadow-premium transition-all relative group border-white/40 ${isNotificationsOpen ? 'bg-white/80 ring-2 ring-indigo-500/20' : 'text-slate-500 hover:text-slate-900'}`}
+                >
+                    <Bell className={`h-5 w-5 lg:h-6 lg:w-6 ${isNotificationsOpen ? 'text-indigo-600' : 'group-hover:animate-bounce'}`} />
+                    <span className="absolute top-3 right-3 lg:top-4 lg:right-4 h-2 lg:h-2.5 w-2 lg:w-2.5 rounded-full bg-indigo-500 border-[3px] border-white shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                </button>
+
+                {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-4 w-72 lg:w-80 bg-white/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-2xl p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-white/50">
+                        <div className="flex items-center justify-between mb-6 lg:mb-8">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Signal Intelligence</h3>
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)]" />
                         </div>
-                        <p className="text-xs font-bold text-gray-900 uppercase tracking-widest">Inbox Clean</p>
-                        <p className="text-[10px] text-gray-500 mt-2">No new updates at this time.</p>
+                        <div className="flex flex-col items-center justify-center py-6 lg:py-10 text-center">
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse" />
+                                <CheckCircle2 className="h-10 w-10 lg:h-12 lg:w-12 text-indigo-500 relative z-10" />
+                            </div>
+                            <p className="text-sm font-bold text-slate-900">All Systems Nominal</p>
+                            <p className="text-[10px] font-medium text-slate-400 mt-2 uppercase tracking-widest leading-relaxed">No high-priority alerts <br/> detected in this cycle.</p>
+                        </div>
+                        <button className="w-full mt-4 lg:mt-6 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest transition-colors">
+                            View Log Archive
+                        </button>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
+
+        <div className="h-6 lg:h-8 w-px bg-slate-200/60 hidden sm:block"></div>
         
-        <div className="relative pl-1 md:pl-2" ref={profileRef}>
+        <div className="relative" ref={profileRef}>
             <button 
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="group flex items-center gap-3 outline-none"
+                className={`group flex items-center gap-3 lg:gap-4 glass-panel p-1.5 lg:p-2 pr-1.5 lg:pr-6 rounded-full lg:rounded-[2rem] shadow-premium transition-all active:scale-95 border-white/40 ${isProfileOpen ? 'bg-white/90 ring-2 ring-indigo-500/20' : 'hover:bg-white/80'}`}
             >
-                <div className="text-right hidden lg:block">
-                    <p className="text-sm font-bold text-gray-900 leading-none">{user?.name}</p>
-                    <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-wider">{user?.role.replace('ROLE_', '')}</p>
-                </div>
-                <div className="relative">
-                    <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 p-0.5 shadow-lg shadow-brand-500/20 transition-transform group-hover:scale-105 active:scale-95">
-                        <div className="h-full w-full rounded-[10px] bg-white overflow-hidden">
-                            {user?.avatarUrl ? (
-                                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-                            ) : (
-                                <div className="h-full w-full flex items-center justify-center bg-gray-50 text-brand-700 font-bold text-sm">
-                                    {user?.name?.charAt(0)}
-                                </div>
-                            )}
-                        </div>
+                <div className="h-9 w-9 lg:h-11 lg:w-11 rounded-full lg:rounded-[1.25rem] bg-gradient-to-tr from-indigo-600 to-indigo-400 p-0.5 shadow-xl group-hover:shadow-indigo-500/30 transition-shadow">
+                    <div className="h-full w-full rounded-full lg:rounded-[1.1rem] bg-white overflow-hidden flex items-center justify-center font-black text-indigo-700 text-xs lg:text-sm">
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt={user.name} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                        ) : (
+                            user?.name?.charAt(0)
+                        )}
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
+                <div className="text-left hidden xl:block">
+                    <p className="text-sm font-black text-slate-900 leading-none">{user?.name?.split(' ')[0]}</p>
+                    <p className="text-[9px] font-bold text-slate-400 mt-1.5 uppercase tracking-[0.2em] leading-none">{user?.role.replace('ROLE_', '')}</p>
+                </div>
+                <ChevronDown className={`hidden xl:block h-4 w-4 text-slate-300 transition-transform duration-500 ${isProfileOpen ? 'rotate-180' : 'group-hover:text-slate-600'}`} />
             </button>
 
             {isProfileOpen && (
-                <div className="absolute right-0 top-full mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50">
-                    <div className="p-1.5">
-                        <div className="space-y-0.5">
-                            <Link 
-                                to="/profile" 
-                                onClick={() => setIsProfileOpen(false)} 
-                                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors group"
-                            >
-                                <div className="p-1.5 rounded-lg bg-gray-100 text-gray-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
-                                    <User className="h-4 w-4" />
-                                </div>
-                                My Profile
-                            </Link>
-                            <Link 
-                                to="/break" 
-                                onClick={() => setIsProfileOpen(false)} 
-                                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors group"
-                            >
-                                <div className="p-1.5 rounded-lg bg-gray-100 text-gray-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                    <Gamepad2 className="h-4 w-4" />
-                                </div>
-                                Focus Break
-                            </Link>
-                        </div>
-                    </div>
+                <div className="absolute right-0 mt-4 w-72 lg:w-80 bg-white/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/60 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 origin-top-right ring-1 ring-white/50 p-2">
                     
-                    <div className="p-1.5 border-t border-gray-50">
-                        <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 rounded-xl hover:bg-red-50 transition-colors">
-                            <LogOut className="h-4 w-4" />
-                            Sign out
+                    {/* User Identity Card */}
+                    <div className="p-5 bg-white/60 rounded-[2rem] border border-white/80 mb-2 flex items-center gap-5 shadow-sm">
+                         <div className="h-12 w-12 lg:h-14 lg:w-14 rounded-2xl lg:rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center text-lg lg:text-xl font-black shadow-lg overflow-hidden shrink-0">
+                            {user?.avatarUrl ? <img src={user.avatarUrl} referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : user?.name.charAt(0)}
+                         </div>
+                         <div className="min-w-0">
+                             <h4 className="text-sm font-black text-slate-900 truncate">{user?.name}</h4>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{user?.email}</p>
+                             <div className="flex items-center gap-1.5 mt-2 bg-emerald-50 w-fit px-2 py-0.5 rounded-md border border-emerald-100">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                 <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">Node Active</span>
+                             </div>
+                         </div>
+                    </div>
+
+                    {/* Navigation Menu */}
+                    <div className="space-y-1 p-1">
+                        <Link to="/profile" className="flex items-center gap-4 px-4 py-3.5 rounded-[1.5rem] hover:bg-white hover:shadow-md transition-all group">
+                            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
+                                <User className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black text-slate-700">Identity Profile</p>
+                                <p className="text-[9px] font-medium text-slate-400">Personal settings & security</p>
+                            </div>
+                        </Link>
+
+                        <Link to="/break" className="flex items-center gap-4 px-4 py-3.5 rounded-[1.5rem] hover:bg-white hover:shadow-md transition-all group">
+                            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
+                                <Zap className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black text-slate-700">Focus Mode</p>
+                                <p className="text-[9px] font-medium text-slate-400">Tactical mental reset</p>
+                            </div>
+                        </Link>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-2 mt-2">
+                        <button 
+                            onClick={logout}
+                            className="w-full flex items-center justify-between px-6 py-4 bg-slate-950 text-white rounded-[1.75rem] hover:bg-slate-900 transition-all shadow-xl group active:scale-[0.98]"
+                        >
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Terminate Session</span>
+                            <LogOut className="h-4 w-4 text-slate-400 group-hover:text-white transition-colors" />
                         </button>
                     </div>
                 </div>
             )}
         </div>
       </div>
-
-      {isMobileMenuOpen && (
-        <div className="absolute top-[64px] left-0 w-full bg-white border-b border-gray-100 shadow-2xl py-3 px-4 flex flex-col gap-1 md:hidden max-h-[calc(100vh-4rem)] overflow-y-auto z-50 animate-in slide-in-from-top-2">
-            {isSuperAdmin && (
-                <>
-                    <div className="mb-2 px-2 pt-2">
-                        <p className="text-xs font-bold text-brand-600 uppercase tracking-widest">Admin Control</p>
-                    </div>
-                    <MobileNavItem to="/admin/users" icon={Shield} label="User Management" active={currentPath === '/admin/users'} />
-                    <MobileNavItem to="/reports" icon={PieChart} label="Analytics Reports" active={currentPath === '/reports'} />
-                    <MobileNavItem to="/admin/performance" icon={BarChart2} label="Team Performance" active={currentPath === '/admin/performance'} />
-                    <div className="my-2 border-t border-gray-100" />
-                </>
-            )}
-
-            <div className="mb-2 px-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Navigation</p>
-            </div>
-            {isClient ? (
-                <MobileNavItem to="/portal" icon={Home} label="My Project" active={currentPath === '/portal'} />
-            ) : (
-                <>
-                    <MobileNavItem to="/dashboard" icon={LayoutDashboard} label="My Dashboard" active={currentPath === '/dashboard'} />
-                    {isAdmin && <MobileNavItem to="/crm" icon={Users} label="CRM & Leads" active={currentPath === '/crm'} />}
-                    {isEmployee && (
-                        <>
-                            <MobileNavItem to="/tasks" icon={CheckSquare} label="Tasks Board" active={currentPath.startsWith('/tasks')} />
-                            <MobileNavItem to="/meetings" icon={Calendar} label="Meeting Tracker" active={currentPath.startsWith('/meetings')} />
-                            <MobileNavItem to="/companies" icon={Briefcase} label="Companies Registry" active={currentPath.startsWith('/companies')} />
-                            <MobileNavItem to="/client-tracker" icon={ListTodo} label="Client Delivery" active={currentPath.startsWith('/client-tracker')} />
-                        </>
-                    )}
-                </>
-            )}
-            <div className="my-2 border-t border-gray-100" />
-            <MobileNavItem to="/profile" icon={User} label="My Profile" active={currentPath === '/profile'} />
-            <div className="p-2">
-                <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 bg-red-50">
-                    <LogOut className="h-5 w-5" />
-                    Sign Out
-                </button>
-            </div>
-        </div>
-      )}
     </header>
   );
 };

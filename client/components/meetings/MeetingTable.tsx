@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Meeting, MeetingStatus } from '../../types';
 import { formatDateTime, getMeetingStatusStyles } from '../../utils';
@@ -27,26 +26,24 @@ const MeetingStatusDropdown = ({ meeting, onStatusChange }: { meeting: Meeting; 
         <div className="relative inline-block" ref={ref}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-sm transition-all hover:opacity-90 active:scale-95 ${getMeetingStatusStyles(meeting.status)}`}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm transition-all active:scale-95 ${getMeetingStatusStyles(meeting.status)}`}
             >
-                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
                 {meeting.status}
-                <ChevronDown className={`h-3 w-3 opacity-50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-3 w-3 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            
             {isOpen && (
-                <div className="absolute top-full left-0 z-50 mt-2 w-36 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                    <div className="p-1">
+                <div className="absolute top-full left-0 z-[100] mt-3 w-40 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 overflow-hidden animate-premium">
+                    <div className="p-1.5 space-y-0.5">
                         {options.map(opt => (
                             <button
                                 key={opt}
                                 onClick={() => { onStatusChange(meeting, opt); setIsOpen(false); }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${
-                                    meeting.status === opt ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold rounded-xl text-left transition-colors ${
+                                    meeting.status === opt ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'
                                 }`}
                             >
                                 {opt}
-                                {meeting.status === opt && <Check className="h-3 w-3 text-brand-600 ml-auto" />}
+                                {meeting.status === opt && <Check className="h-3 w-3 text-white ml-auto" />}
                             </button>
                         ))}
                     </div>
@@ -57,97 +54,53 @@ const MeetingStatusDropdown = ({ meeting, onStatusChange }: { meeting: Meeting; 
 };
 
 export const MeetingTable: React.FC<MeetingTableProps> = ({ data, onEdit, onStatusChange }) => {
-  const [expandedNoteId, setExpandedNoteId] = useState<number | null>(null);
-
-  if (data.length === 0) {
-    return (
-      <div className="p-20 text-center bg-white">
-        <div className="h-16 w-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
-            <Calendar className="h-8 w-8 text-gray-300" />
-        </div>
-        <h3 className="text-gray-900 font-bold text-lg">No meetings found</h3>
-        <p className="text-gray-500 mt-1 text-sm">Schedule a new meeting to get started.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto custom-scrollbar bg-white min-h-[400px] pb-24">
-        <table className="w-full text-left border-collapse whitespace-nowrap">
+    <div className="overflow-x-auto no-scrollbar pb-24">
+        <table className="w-full text-left border-separate border-spacing-y-2">
             <thead>
-                <tr className="bg-white border-b border-gray-100">
-                    <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-1/4">Meeting Title</th>
-                    <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date & Time</th>
-                    <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Link</th>
-                    <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-1/4">Notes</th>
+                <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                    <th className="px-6 py-4">Session Title</th>
+                    <th className="px-6 py-4">Timestamp</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Channel</th>
                 </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
                 {data.map(meeting => (
-                    <tr key={meeting.id} className="group hover:bg-slate-50/50 transition-colors duration-200">
-                        
-                        {/* Title */}
-                        <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                                <div className="h-9 w-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 flex-shrink-0 shadow-sm">
-                                    <Calendar className="h-4 w-4" />
+                    <tr key={meeting.id} className="group">
+                        <td className="px-8 py-5 bg-white/40 backdrop-blur-xl rounded-l-3xl border-y border-l border-white/60 shadow-sm group-hover:bg-white transition-all duration-500">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                    <Calendar className="h-5 w-5" />
                                 </div>
-                                <button onClick={() => onEdit(meeting)} className="font-bold text-sm text-gray-900 hover:text-brand-600 hover:underline text-left">
+                                <button onClick={() => onEdit(meeting)} className="font-black text-sm text-slate-900 hover:text-brand-600 transition-colors text-left tracking-tight">
                                     {meeting.title}
                                 </button>
                             </div>
                         </td>
 
-                        {/* Date Time - Formatted clearly in IST */}
-                        <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-sm font-bold font-mono ${new Date(meeting.dateTime) < new Date() && meeting.status !== 'Completed' && meeting.status !== 'Cancelled' ? 'text-red-600' : 'text-gray-800'}`}>
-                                        {new Date(meeting.dateTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' })}
-                                    </span>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
+                        <td className="px-6 py-4 bg-white/40 border-y border-white/60 group-hover:bg-white transition-all duration-500">
+                             <div className="flex flex-col">
+                                <span className="text-xs font-black text-slate-800 tracking-tight">
+                                    {new Date(meeting.dateTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5 flex items-center gap-1">
+                                    <Clock className="h-2.5 w-2.5" />
                                     {new Date(meeting.dateTime).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                                 </span>
                             </div>
                         </td>
 
-                        {/* Status (Dropdown) */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 bg-white/40 border-y border-white/60 group-hover:bg-white transition-all duration-500">
                             <MeetingStatusDropdown meeting={meeting} onStatusChange={onStatusChange} />
                         </td>
 
-                        {/* Link */}
-                        <td className="px-6 py-4">
+                        <td className="px-8 py-5 bg-white/40 backdrop-blur-xl rounded-r-3xl border-y border-r border-white/60 shadow-sm group-hover:bg-white transition-all duration-500 text-right">
                             {meeting.meetingLink ? (
-                                <a 
-                                    href={meeting.meetingLink} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors max-w-[150px] truncate"
-                                    title={meeting.meetingLink}
-                                >
-                                    <Video className="h-3.5 w-3.5 flex-shrink-0" />
-                                    Join Call
-                                    <ExternalLink className="h-3 w-3 flex-shrink-0 ml-auto opacity-50" />
+                                <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-950 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                    <Video className="h-3.5 w-3.5 text-indigo-400" /> Open Channel
                                 </a>
-                            ) : (
-                                <span className="text-gray-300 text-xs font-medium italic">No link</span>
-                            )}
-                        </td>
-
-                        {/* Notes */}
-                        <td className="px-6 py-4">
-                            <div 
-                                className="relative text-xs text-gray-500 max-w-xs cursor-pointer group/note"
-                                onClick={() => setExpandedNoteId(expandedNoteId === meeting.id ? null : meeting.id)}
-                            >
-                                <p className={`${expandedNoteId === meeting.id ? '' : 'truncate'}`}>
-                                    {meeting.notes || <span className="text-gray-300 italic">No notes added</span>}
-                                </p>
-                            </div>
+                            ) : <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Offline Only</span>}
                         </td>
                     </tr>
                 ))}

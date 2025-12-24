@@ -12,7 +12,18 @@ interface TasksKanbanProps {
   readOnly?: boolean; 
 }
 
-const KanbanColumn = ({ 
+interface KanbanColumnProps { 
+    title: string; 
+    status: TaskStatus; 
+    tasks: Task[]; 
+    color: string;
+    userAvatarMap?: Record<string, string>;
+    onEdit: (t: Task) => void;
+    onDrop: (taskId: number, newStatus: TaskStatus) => void;
+    readOnly?: boolean;
+}
+
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
     title, 
     status, 
     tasks, 
@@ -21,15 +32,6 @@ const KanbanColumn = ({
     onEdit,
     onDrop,
     readOnly
-}: { 
-    title: string, 
-    status: TaskStatus, 
-    tasks: Task[], 
-    color: string,
-    userAvatarMap?: Record<string, string>,
-    onEdit: (t: Task) => void,
-    onDrop: (taskId: number, newStatus: TaskStatus) => void,
-    readOnly?: boolean
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
 
@@ -137,7 +139,7 @@ const KanbanColumn = ({
                             {task.assignedTo !== 'Unassigned' && (
                                 <>
                                     {userAvatarUrl ? (
-                                        <img src={userAvatarUrl} alt={task.assignedTo} className="h-6 w-6 rounded-full object-cover border border-gray-100" />
+                                        <img src={userAvatarUrl} alt={task.assignedTo} referrerPolicy="no-referrer" className="h-6 w-6 rounded-full object-cover border border-gray-100" />
                                     ) : (
                                         <div className="h-6 w-6 rounded-full bg-brand-50 text-brand-600 text-[10px] font-bold flex items-center justify-center border border-brand-100">
                                             {task.assignedTo?.slice(0, 2).toUpperCase()}
@@ -160,8 +162,7 @@ const KanbanColumn = ({
     );
 };
 
-export const TasksKanban: React.FC<TasksKanbanProps> = ({ tasks, userAvatarMap, onEdit, onStatusChange, readOnly = false }) => {
-    
+export const TasksKanban: React.FC<TasksKanbanProps> = ({ tasks, userAvatarMap, onEdit, onStatusChange, readOnly }) => {
     const handleDrop = (taskId: number, newStatus: TaskStatus) => {
         const task = tasks.find(t => t.id === taskId);
         if (task && task.status !== newStatus) {
@@ -169,58 +170,29 @@ export const TasksKanban: React.FC<TasksKanbanProps> = ({ tasks, userAvatarMap, 
         }
     };
 
+    const columns: { title: string, status: TaskStatus, color: string }[] = [
+        { title: 'To Do', status: 'Not Started', color: 'bg-slate-400' },
+        { title: 'In Progress', status: 'In Progress', color: 'bg-amber-500' },
+        { title: 'Review', status: 'In Review', color: 'bg-purple-500' },
+        { title: 'Posted', status: 'Posted', color: 'bg-sky-500' },
+        { title: 'Done', status: 'Completed', color: 'bg-emerald-500' },
+    ];
+
     return (
-        <div className="flex gap-4 h-full overflow-x-auto pb-4 items-stretch px-2 snap-x">
-            <KanbanColumn 
-                title="To Do" 
-                status="Not Started" 
-                color="bg-gray-400" 
-                tasks={tasks.filter(t => t.status === 'Not Started')} 
-                userAvatarMap={userAvatarMap}
-                onEdit={onEdit}
-                onDrop={handleDrop}
-                readOnly={readOnly}
-            />
-            <KanbanColumn 
-                title="In Progress" 
-                status="In Progress" 
-                color="bg-blue-500" 
-                tasks={tasks.filter(t => t.status === 'In Progress')} 
-                userAvatarMap={userAvatarMap}
-                onEdit={onEdit}
-                onDrop={handleDrop}
-                readOnly={readOnly}
-            />
-            <KanbanColumn 
-                title="In Review" 
-                status="In Review" 
-                color="bg-purple-500" 
-                tasks={tasks.filter(t => t.status === 'In Review')} 
-                userAvatarMap={userAvatarMap}
-                onEdit={onEdit}
-                onDrop={handleDrop}
-                readOnly={readOnly}
-            />
-            <KanbanColumn 
-                title="Posted" 
-                status="Posted" 
-                color="bg-sky-500" 
-                tasks={tasks.filter(t => t.status === 'Posted')} 
-                userAvatarMap={userAvatarMap}
-                onEdit={onEdit}
-                onDrop={handleDrop}
-                readOnly={readOnly}
-            />
-            <KanbanColumn 
-                title="Completed" 
-                status="Completed" 
-                color="bg-green-500" 
-                tasks={tasks.filter(t => t.status === 'Completed' || t.status === 'Done')} 
-                userAvatarMap={userAvatarMap}
-                onEdit={onEdit}
-                onDrop={handleDrop}
-                readOnly={readOnly}
-            />
+        <div className="flex gap-4 h-full min-w-full w-fit">
+            {columns.map(col => (
+                <KanbanColumn 
+                    key={col.status}
+                    title={col.title}
+                    status={col.status}
+                    tasks={tasks.filter(t => t.status === col.status)}
+                    color={col.color}
+                    userAvatarMap={userAvatarMap}
+                    onEdit={onEdit}
+                    onDrop={handleDrop}
+                    readOnly={readOnly}
+                />
+            ))}
         </div>
     );
 };

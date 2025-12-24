@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff, Shield, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 declare global {
@@ -138,10 +139,10 @@ export const LoginPage: React.FC = () => {
         <div className="min-h-screen w-full flex font-sans bg-white">
 
             {/* LEFT PANEL: The Brand Experience */}
-            <div className="hidden lg:flex w-1/2 relative bg-[#0B1121] overflow-hidden flex-col justify-between p-16">
-
+            <div className="hidden lg:flex w-1/2 relative bg-[#0B1121] overflow-hidden flex-col justify-between p-16 group">
+                
                 {/* Ambient Background Effects */}
-                <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-0 pointer-events-none z-0">
                     {/* Gradient Blobs */}
                     <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-brand-600/10 blur-[120px]" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-600/10 blur-[100px]" />
@@ -157,13 +158,9 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 {/* Logo Area */}
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 font-bold text-2xl tracking-tight text-white">
-                        <div className="relative z-10 flex items-center gap-3 text-2xl font-bold tracking-tight">
-                            <img src="/logo.png" alt="Incial" className="h-10 w-10 rounded-xl bg-white shadow-lg object-contain p-1" />
-                            Incial
-                        </div>
-                    </div>
+                <div className="relative z-10 flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
+                    <img src="/logo.png" alt="Incial" className="h-10 w-10 rounded-xl bg-white shadow-lg object-contain p-1" />
+                    Incial
                 </div>
 
                 {/* Hero Content */}
@@ -173,7 +170,7 @@ export const LoginPage: React.FC = () => {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
                         </span>
-                        Operational OS Mark II
+                        Operational OS Mark III
                     </div>
 
                     <h1 className="text-6xl font-semibold text-white tracking-tight leading-[1.1] mb-6">
@@ -185,23 +182,22 @@ export const LoginPage: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Footer / Social Proof */}
-                <div className="relative z-10">
-                    <div className="flex items-center gap-6 pt-8 border-t border-white/5">
-                        <div className="flex -space-x-3">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="h-10 w-10 rounded-full border-2 border-[#0B1121] bg-slate-800 flex items-center justify-center text-[10px] text-white font-bold">
-                                    {i === 4 ? '5k+' : ''}
-                                </div>
-                            ))}
+                {/* Footer / System Status */}
+                <div className="relative z-10 flex gap-4 pt-12">
+                    <div className="flex-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20 group/stat cursor-default">
+                        <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                            <span className="text-[10px] font-black text-brand-200 uppercase tracking-widest">System Status</span>
                         </div>
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                                <span className="text-white font-bold text-sm">Trust & Security</span>
-                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                            </div>
-                            <span className="text-slate-500 text-xs mt-0.5">Enterprise-grade protection.</span>
+                        <p className="text-white font-bold text-sm tracking-tight group-hover/stat:text-brand-100 transition-colors">All Nodes Operational</p>
+                    </div>
+
+                    <div className="flex-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20 group/stat cursor-default">
+                        <div className="flex items-center gap-2">
+                            <Shield className="h-3 w-3 text-indigo-400" />
+                            <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Security Protocol</span>
                         </div>
+                        <p className="text-white font-bold text-sm tracking-tight group-hover/stat:text-indigo-100 transition-colors">AES-256 Encrypted</p>
                     </div>
                 </div>
             </div>
@@ -213,10 +209,8 @@ export const LoginPage: React.FC = () => {
                     {/* Logo Area (Mobile/Right Panel) */}
                     <div className="lg:hidden mb-10 relative z-10">
                         <div className="flex items-center gap-3 font-bold text-2xl tracking-tight text-gray-900">
-                            <div className="relative z-10 flex items-center gap-3 text-2xl font-bold tracking-tight">
-                                <img src="/logo.png" alt="Incial" className="h-10 w-10 rounded-xl bg-white shadow-lg object-contain p-1 border border-gray-100" />
-                                Incial
-                            </div>
+                            <img src="/logo.png" alt="Incial" className="h-10 w-10 rounded-xl bg-white shadow-lg object-contain p-1 border border-gray-100" />
+                            Incial
                         </div>
                     </div>
 

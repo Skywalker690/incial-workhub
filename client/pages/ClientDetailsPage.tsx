@@ -4,39 +4,39 @@ import { Navbar } from '../components/layout/Navbar';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useParams, Link } from 'react-router-dom';
 import { crmApi, tasksApi, usersApi } from '../services/api';
-import { CRMEntry, Task, TaskFilterState, TaskStatus } from '../types';
+import { CRMEntry, Task, TaskFilterState, TaskStatus, TaskPriority } from '../types';
 import { ClientTaskTable } from '../components/client-tracker/ClientTaskTable';
 import { ClientTaskForm } from '../components/client-tracker/ClientTaskForm';
 import { TasksKanban } from '../components/tasks/TasksKanban';
 import { TasksCalendar } from '../components/tasks/TasksCalendar';
 import { TasksFilter } from '../components/tasks/TasksFilter';
 import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
-import { CheckCircle, Plus, HardDrive, LayoutList, Calendar as CalendarIcon, User, ArrowLeft, ExternalLink, Kanban, Archive, ChevronDown, ChevronRight, PieChart, AlertCircle, Clock, Building } from 'lucide-react';
+import { CheckCircle, Plus, HardDrive, LayoutList, Calendar as CalendarIcon, ExternalLink, Kanban, Archive, ChevronDown, ChevronRight, AlertCircle, Building, Zap, Rocket, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
+import { useToast } from '../context/ToastContext';
+import { getStatusStyles, formatDate, formatDateTime } from '../utils';
 
-type ViewMode = 'list' | 'kanban' | 'mine' | 'calendar';
+type ViewMode = 'list' | 'kanban' | 'calendar';
 
 export const ClientDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isSidebarCollapsed } = useLayout();
+  const { showToast } = useToast();
   const [client, setClient] = useState<CRMEntry | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [userAvatarMap, setUserAvatarMap] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   
-  // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
 
-  // Filters State
   const [filters, setFilters] = useState<TaskFilterState>({
-    search: '',
-    status: '',
-    priority: '',
-    assignedTo: ''
+    search: '', status: '', priority: '', assignedTo: ''
   });
 
   useEffect(() => {
@@ -49,24 +49,14 @@ export const ClientDetailsPage: React.FC = () => {
             tasksApi.getAll(),
             usersApi.getAll()
         ]);
-
         const foundClient = crmData.crmList.find(c => c.id === parseInt(id));
         setClient(foundClient || null);
-
         const clientTasks = tasksData.filter(t => t.companyId === parseInt(id));
         setTasks(clientTasks);
-
         const uMap: Record<string, string> = {};
-        usersData.forEach(u => {
-            if (u.avatarUrl) uMap[u.name] = u.avatarUrl;
-        });
+        usersData.forEach(u => { if (u.avatarUrl) uMap[u.name] = u.avatarUrl; });
         setUserAvatarMap(uMap);
-
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
-      }
+      } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
     fetchData();
   }, [id]);
@@ -79,18 +69,12 @@ export const ClientDetailsPage: React.FC = () => {
       const matchesAssignee = filters.assignedTo === '' || t.assignedTo === filters.assignedTo;
       return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
     });
-
-    if (viewMode === 'mine' && user) {
-        result = result.filter(t => t.assignedTo === user.name);
-    }
-    
     return result.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
-  }, [tasks, viewMode, user, filters]);
+  }, [tasks, filters]);
 
   const { activeTasks, completedTasks } = useMemo(() => {
       const active = filteredBaseTasks.filter(t => t.status !== 'Completed' && t.status !== 'Done');
       const completed = filteredBaseTasks.filter(t => t.status === 'Completed' || t.status === 'Done');
-      completed.sort((a, b) => new Date(b.lastUpdatedAt || b.createdAt).getTime() - new Date(a.lastUpdatedAt || a.createdAt).getTime());
       return { activeTasks: active, completedTasks: completed };
   }, [filteredBaseTasks]);
 
@@ -102,254 +86,256 @@ export const ClientDetailsPage: React.FC = () => {
       return { total, completed, progress, highPriority };
   }, [tasks]);
 
-
-  const handleCreate = () => {
-      setEditingTask(undefined);
-      setIsModalOpen(true);
-  };
-
   const handleEdit = (task: Task) => {
-      setEditingTask(task);
-      setIsModalOpen(true);
-  };
-
-  const handleDelete = async () => {
-      if (!deleteId) return;
-      
-      const id = deleteId;
-      setTasks(tasks.filter(t => t.id !== id));
-      setDeleteId(null);
-      
-      try {
-        await tasksApi.delete(id);
-      } catch (e) {
-        // Revert? For now simple error logging
-        console.error("Delete failed", e);
-      }
+    setEditingTask(task);
+    setIsModalOpen(true);
   };
 
   const handleSave = async (data: Partial<Task>) => {
       if (!client) return;
-      const auditData = {
-          lastUpdatedBy: user?.name || 'Unknown',
-          lastUpdatedAt: new Date().toISOString()
-      };
-      const finalData = { ...data, ...auditData };
-
       try {
           if (editingTask) {
-              const updated = { ...editingTask, ...finalData } as Task;
-              setTasks(tasks.map(t => t.id === updated.id ? updated : t));
-              await tasksApi.update(updated.id, finalData);
+              // Optimistic update
+              setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...data } as Task : t));
+              
+              await tasksApi.update(editingTask.id, data);
+              showToast("Milestone synchronized", "success");
           } else {
-              const newTask = await tasksApi.create(finalData as Task);
-              setTasks([newTask, ...tasks]);
+              const newTask = await tasksApi.create({ ...data, companyId: client.id } as Task);
+              setTasks(prev => [...prev, newTask]);
+              showToast("New milestone deployed", "success");
           }
-      } catch(e) {
-          console.error("Save failed", e);
+      } catch(e) { 
+          showToast("Sync failed", "error");
+          console.error(e); 
+          // Reload on error
+          const updatedTasks = await tasksApi.getAll();
+          setTasks(updatedTasks.filter(t => t.companyId === client?.id));
       }
   };
 
   const handleStatusChange = async (task: Task, newStatus: TaskStatus) => {
-      const updated = { ...task, status: newStatus };
-      setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
-      await tasksApi.update(task.id, { status: newStatus });
+      const previousTasks = [...tasks];
+      // Optimistic Update
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus, lastUpdatedAt: new Date().toISOString() } : t));
+      
+      try {
+          await tasksApi.update(task.id, { 
+              status: newStatus,
+              lastUpdatedAt: new Date().toISOString(),
+              lastUpdatedBy: user?.name || 'System'
+          });
+      } catch (e) {
+          showToast("Status sync failed", "error");
+          setTasks(previousTasks); // Revert
+      }
+  };
+
+  const handlePriorityChange = async (task: Task, newPriority: TaskPriority) => {
+      const previousTasks = [...tasks];
+      // Optimistic Update
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, priority: newPriority, lastUpdatedAt: new Date().toISOString() } : t));
+      
+      try {
+          await tasksApi.update(task.id, { 
+              priority: newPriority,
+              lastUpdatedAt: new Date().toISOString(),
+              lastUpdatedBy: user?.name || 'System'
+          });
+          showToast(`Priority set to ${newPriority}`, "success");
+      } catch (e) {
+          showToast("Priority sync failed", "error");
+          setTasks(previousTasks); // Revert
+      }
   };
 
   const handleToggleVisibility = async (task: Task) => {
-      const updated = { ...task, isVisibleOnMainBoard: !task.isVisibleOnMainBoard };
-      setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
-      await tasksApi.update(task.id, { isVisibleOnMainBoard: !task.isVisibleOnMainBoard });
+      const newVisibility = !task.isVisibleOnMainBoard;
+      const previousTasks = [...tasks];
+      // Optimistic Update
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, isVisibleOnMainBoard: newVisibility } : t));
+      
+      try {
+          await tasksApi.update(task.id, { isVisibleOnMainBoard: newVisibility });
+          showToast(newVisibility ? "Task promoted to main board" : "Task hidden from main board", "success");
+      } catch (e) {
+          setTasks(previousTasks); // Revert
+          showToast("Sync failed", "error");
+      }
   };
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">Loading...</div>;
-  if (!client) return <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">Client not found</div>;
+  if (isLoading) return (
+    <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-100 border-t-brand-600" />
+    </div>
+  );
+  
+  if (!client) return <div className="flex min-h-screen items-center justify-center">Node offline</div>;
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen mesh-bg relative">
+      <div className="glass-canvas" />
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
         <Navbar />
         
-        <main className="flex-1 p-8 overflow-y-auto custom-scrollbar h-[calc(100vh-80px)]">
+        <div className="flex-1 px-6 lg:px-12 py-10 pb-32">
            
-           <div className="mb-6 flex items-center gap-2 text-sm text-gray-500 font-medium">
-                <Link to="/client-tracker" className="hover:text-brand-600 transition-colors flex items-center gap-1">
-                    <ArrowLeft className="h-4 w-4" /> Clients
-                </Link>
-                <span className="text-gray-300">/</span>
-                <span className="text-gray-900">{client.company}</span>
+           <div className="mb-10 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                <Link to="/client-tracker" className="hover:text-brand-600 transition-colors">Registry</Link>
+                <ChevronRight className="h-3 w-3" />
+                <span className="text-slate-900">{client.company} Dashboard</span>
            </div>
 
-           <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-8 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-8 opacity-5">
-                   <LayoutList className="h-64 w-64 text-brand-600 -rotate-12 transform translate-x-12 -translate-y-12" />
-               </div>
-
-               <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 relative z-10">
-                   <div className="flex-1">
-                       <div className="flex items-center gap-4 mb-3">
-                           {/* Logo Logic */}
-                           <div className="h-16 w-16 flex-shrink-0 rounded-2xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden shadow-sm relative">
-                                {client.companyImageUrl ? (
-                                    <img 
-                                        src={client.companyImageUrl} 
-                                        alt={client.company} 
-                                        className="h-full w-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                            e.currentTarget.nextElementSibling?.classList.add('flex');
-                                        }}
-                                    />
-                                ) : null}
-                                <div className={`${client.companyImageUrl ? 'hidden' : 'flex'} absolute inset-0 items-center justify-center text-gray-300`}>
-                                    <Building className="h-8 w-8" />
-                                </div>
+           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-12">
+               {/* Identity Card */}
+               <div className="xl:col-span-8 bg-white/40 backdrop-blur-3xl rounded-[3.5rem] p-12 border border-white shadow-premium relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-100 rounded-full blur-[100px] opacity-30 -mr-48 -mt-48 transition-opacity group-hover:opacity-50" />
+                   
+                   <div className="relative z-10">
+                       <div className="flex items-center gap-8 mb-10">
+                           <div className="h-24 w-24 rounded-[2.5rem] bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-inner shrink-0 ring-4 ring-white/50">
+                                {client.companyImageUrl ? <img src={client.companyImageUrl} className="h-full w-full object-cover" /> : <Building className="h-10 w-10 text-slate-200" />}
                            </div>
-
                            <div>
-                               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{client.company}</h1>
-                               <div className="flex items-center gap-3 mt-1">
-                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-50 text-green-700 border border-green-100">
+                               <div className="flex flex-wrap items-center gap-4 mb-3">
+                                   <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">{client.company}</h1>
+                                   <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border shadow-inner-glass ${getStatusStyles(client.status)}`}>
                                        {client.status}
                                    </span>
-                                   <span className="text-sm text-gray-500 font-medium flex items-center gap-1">
-                                       <User className="h-3.5 w-3.5" /> {client.contactName}
-                                   </span>
                                </div>
+                               <p className="text-slate-500 font-bold text-lg flex items-center gap-2">
+                                   <User className="h-5 w-5 text-brand-400" /> Executive Point: <span className="text-slate-900">{client.contactName}</span>
+                               </p>
                            </div>
                        </div>
                        
-                       <p className="text-gray-500 max-w-2xl mt-4 leading-relaxed">
-                            {client.notes || 'Manage all tasks, deliverables, and assets for this client project here.'}
+                       <p className="text-slate-400 text-xl font-medium leading-relaxed max-w-2xl italic">
+                            "{client.notes || 'This project node is undergoing strategic operational sync.'}"
                        </p>
 
-                       <div className="flex flex-wrap gap-3 mt-6">
+                       <div className="flex flex-wrap gap-4 mt-10">
                            {client.driveLink && (
-                               <a href={client.driveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 hover:bg-white hover:border-blue-200 hover:text-blue-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm">
-                                    <HardDrive className="h-4 w-4" /> Project Assets
+                               <a href={client.driveLink} target="_blank" className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-700 bg-white border border-slate-100 px-8 py-4 rounded-3xl hover:shadow-xl hover:border-brand-300 transition-all">
+                                    <HardDrive className="h-5 w-5 text-brand-600" /> Digital Asset Vault
                                </a>
                            )}
                            {client.socials?.website && (
-                                <a href={client.socials.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 hover:bg-white hover:border-brand-200 hover:text-brand-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm">
-                                     <ExternalLink className="h-4 w-4" /> Website
+                                <a href={client.socials.website} target="_blank" className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-700 bg-white border border-slate-100 px-8 py-4 rounded-3xl hover:shadow-xl hover:border-brand-300 transition-all">
+                                     <Rocket className="h-5 w-5 text-indigo-600" /> Public Node
                                 </a>
                            )}
                        </div>
                    </div>
+               </div>
 
-                   <div className="flex items-center gap-8 bg-gray-50/50 p-6 rounded-2xl border border-gray-100 backdrop-blur-sm">
-                       <div className="relative h-24 w-24 flex-shrink-0">
-                           <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
-                               <path className="text-gray-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.5" />
-                               <path className="text-brand-600 transition-all duration-1000 ease-out" strokeDasharray={`${progressStats.progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
-                           </svg>
-                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                               <span className="text-xl font-bold text-gray-900">{progressStats.progress}%</span>
-                               <span className="text-[9px] font-bold text-gray-400 uppercase">Done</span>
+               {/* Stats Card */}
+               <div className="xl:col-span-4 bg-slate-950 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border border-white/5">
+                   <div className="absolute inset-0 bg-gradient-to-br from-brand-600/30 via-transparent to-transparent opacity-50" />
+                   
+                   <div className="relative z-10">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-400 mb-10 flex items-center gap-3">
+                           <Zap className="h-4 w-4 fill-brand-400" /> Operational Pulse
+                       </h3>
+                       
+                       <div className="flex items-baseline gap-4 mb-6">
+                           <span className="text-8xl font-black tracking-tighter leading-none">{progressStats.progress}%</span>
+                           <div className="flex flex-col">
+                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Velocity</span>
+                               <span className="text-sm font-bold text-emerald-400 mt-1">OPTIMAL</span>
                            </div>
                        </div>
+                       
+                       <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden shadow-inner">
+                           <div className="h-full bg-gradient-to-r from-brand-500 to-indigo-400 rounded-full transition-all duration-[1500ms] shadow-[0_0_20px_rgba(99,102,241,0.5)]" style={{ width: `${progressStats.progress}%` }} />
+                       </div>
+                   </div>
 
-                       <div className="space-y-3 min-w-[140px]">
-                           <div className="flex justify-between items-center text-sm">
-                               <span className="text-gray-500 font-medium flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500" /> Completed</span>
-                               <span className="font-bold text-gray-900">{progressStats.completed}/{progressStats.total}</span>
-                           </div>
-                           <div className="flex justify-between items-center text-sm">
-                               <span className="text-gray-500 font-medium flex items-center gap-2"><AlertCircle className="h-4 w-4 text-red-500" /> High Priority</span>
-                               <span className="font-bold text-gray-900">{progressStats.highPriority}</span>
-                           </div>
+                   <div className="relative z-10 grid grid-cols-2 gap-8 mt-10 pt-10 border-t border-white/5">
+                       <div>
+                           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> Completed</p>
+                           <p className="text-3xl font-black text-white">{progressStats.completed} <span className="text-sm font-bold text-slate-600">/ {progressStats.total}</span></p>
+                       </div>
+                       <div>
+                           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2"><AlertCircle className="h-3 w-3 text-rose-500" /> Priority</p>
+                           <p className="text-3xl font-black text-white">{progressStats.highPriority}</p>
                        </div>
                    </div>
                </div>
            </div>
 
-           <div className="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100/50 flex flex-col flex-1 overflow-hidden min-h-[500px]">
+           {/* Workflow Workspace */}
+           <div className="bg-white/30 backdrop-blur-3xl rounded-[3.5rem] border border-white shadow-2xl flex flex-col mb-12">
                 
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 border-b border-gray-100">
-                    <div className="bg-gray-100/80 p-1 rounded-xl flex items-center gap-1 w-full lg:w-auto overflow-x-auto">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-6 p-4 border-b border-slate-100 bg-white/20 rounded-t-[3.5rem]">
+                    <div className="p-2 bg-white/60 rounded-3xl flex items-center gap-1 border border-white/50 overflow-x-auto max-w-full">
                         {[
-                            { id: 'list', label: 'List View', icon: LayoutList },
-                            { id: 'kanban', label: 'Kanban', icon: Kanban },
-                            { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
-                            { id: 'mine', label: 'My Tasks', icon: User },
+                            { id: 'list', label: 'Milestones', icon: LayoutList },
+                            { id: 'kanban', label: 'Board', icon: Kanban },
+                            { id: 'calendar', label: 'Timeline', icon: CalendarIcon },
                         ].map((view) => (
                             <button
                                 key={view.id}
                                 onClick={() => setViewMode(view.id as ViewMode)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                                    viewMode === view.id 
-                                    ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5' 
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                className={`flex items-center gap-3 px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                                    viewMode === view.id ? 'bg-white text-brand-700 shadow-xl ring-1 ring-black/5' : 'text-slate-400 hover:text-slate-900'
                                 }`}
                             >
-                                <view.icon className="h-3.5 w-3.5" />
-                                {view.label}
+                                <view.icon className="h-4 w-4" /> {view.label}
                             </button>
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-3 w-full lg:w-auto">
-                        <button 
-                            onClick={handleCreate}
-                            className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-brand-500/20 transition-all active:scale-95 ml-auto lg:ml-0"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Task
-                        </button>
-                    </div>
+                    <button 
+                        onClick={() => { setEditingTask(undefined); setIsModalOpen(true); }}
+                        className="bg-slate-950 hover:bg-slate-900 text-white px-10 py-4 rounded-[1.5rem] flex items-center gap-4 text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+                    >
+                        <Plus className="h-5 w-5 text-brand-400" /> New Task
+                    </button>
                 </div>
 
-                {viewMode !== 'calendar' && (
-                    <TasksFilter filters={filters} setFilters={setFilters} />
-                )}
+                {viewMode !== 'calendar' && <TasksFilter filters={filters} setFilters={setFilters} />}
 
-                <div className="flex-1 overflow-y-auto bg-white p-0">
-                    {(viewMode === 'list' || viewMode === 'mine') && (
+                <div className="pb-10">
+                    {viewMode === 'list' && (
                         <div>
-                             <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-2 sticky top-0 z-20">
-                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Active Queue ({activeTasks.length})</h3>
+                             <div className="px-10 py-6 flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Active Deployment Queue</h3>
                              </div>
                              
                              <ClientTaskTable 
                                 tasks={activeTasks} 
-                                userAvatarMap={userAvatarMap}
+                                userAvatarMap={userAvatarMap} 
                                 onEdit={handleEdit} 
                                 onDelete={(id) => setDeleteId(id)} 
-                                onStatusChange={handleStatusChange}
+                                onStatusChange={handleStatusChange} 
+                                onPriorityChange={handlePriorityChange}
                                 onToggleVisibility={handleToggleVisibility}
-                                readOnly={false}
-                            />
+                             />
 
                             {completedTasks.length > 0 && (
-                                <div className="border-t border-gray-100 mt-4">
+                                <div className="mt-8 border-t border-slate-950/5 px-10">
                                      <button 
                                         onClick={() => setIsCompletedExpanded(!isCompletedExpanded)}
-                                        className="w-full flex items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left group"
+                                        className="w-full flex items-center gap-4 py-8 hover:bg-white/40 transition-colors text-left group rounded-[2rem] px-4"
                                     >
-                                        <div className="p-1 rounded-md bg-gray-200 group-hover:bg-gray-300 transition-colors">
-                                            {isCompletedExpanded ? <ChevronDown className="h-3 w-3 text-gray-600" /> : <ChevronRight className="h-3 w-3 text-gray-600" />}
+                                        <div className="p-2 rounded-xl bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                                            {isCompletedExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                         </div>
-                                        <Archive className="h-4 w-4 text-gray-400" />
-                                        <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
-                                            Completed Archives ({completedTasks.length})
-                                        </h3>
+                                        <Archive className="h-6 w-6 text-slate-300" />
+                                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Operational Archives ({completedTasks.length})</h3>
                                     </button>
-
                                     {isCompletedExpanded && (
-                                        <div className="bg-gray-50/30">
-                                            <ClientTaskTable 
-                                                tasks={completedTasks} 
-                                                userAvatarMap={userAvatarMap}
-                                                onEdit={handleEdit} 
-                                                onDelete={(id) => setDeleteId(id)} 
-                                                onStatusChange={handleStatusChange}
-                                                onToggleVisibility={handleToggleVisibility}
-                                                readOnly={false}
-                                            />
-                                        </div>
+                                        <ClientTaskTable 
+                                            tasks={completedTasks} 
+                                            userAvatarMap={userAvatarMap} 
+                                            onEdit={handleEdit} 
+                                            onDelete={(id) => setDeleteId(id)} 
+                                            onStatusChange={handleStatusChange} 
+                                            onPriorityChange={handlePriorityChange}
+                                            onToggleVisibility={handleToggleVisibility}
+                                        />
                                     )}
                                 </div>
                             )}
@@ -357,48 +343,40 @@ export const ClientDetailsPage: React.FC = () => {
                     )}
 
                     {viewMode === 'kanban' && (
-                        <div className="h-full p-6 bg-gray-50/30">
+                        <div className="px-4 lg:px-8 py-6 h-[650px] overflow-x-auto custom-scrollbar">
                             <TasksKanban 
                                 tasks={filteredBaseTasks} 
-                                userAvatarMap={userAvatarMap}
+                                userAvatarMap={userAvatarMap} 
                                 onEdit={handleEdit} 
                                 onStatusChange={handleStatusChange} 
-                                readOnly={false}
                             />
                         </div>
                     )}
-
+                    
                     {viewMode === 'calendar' && (
-                        <div className="h-full p-6">
-                            <TasksCalendar tasks={filteredBaseTasks} onEdit={handleEdit} />
+                        <div className="px-4 lg:px-8 py-6 h-[750px]">
+                            <TasksCalendar 
+                                tasks={filteredBaseTasks} 
+                                onEdit={handleEdit} 
+                            />
                         </div>
                     )}
                 </div>
                 
-                <div className="p-3 border-t border-gray-50 bg-white text-xs font-medium text-gray-400 flex justify-between">
-                    <span>{filteredBaseTasks.length} total tasks</span>
-                    <span>Last synced just now</span>
+                <div className="p-8 border-t border-white/40 bg-white/20 text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] flex justify-between rounded-b-[3.5rem]">
+                    <span>Registry: {filteredBaseTasks.length} Operations Loaded</span>
+                    <span>System: Synced</span>
                 </div>
            </div>
-
-        </main>
+        </div>
       </div>
 
-      <ClientTaskForm 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSave}
-        initialData={editingTask}
-        companyId={client.id}
-      />
-
-      <DeleteConfirmationModal 
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Delete Task"
-        message="Are you sure you want to remove this task?"
-      />
+      <ClientTaskForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSave} initialData={editingTask} companyId={client.id} />
+      <DeleteConfirmationModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={async () => { if(deleteId) { 
+          setTasks(prev => prev.filter(t => t.id !== deleteId)); // Optimistic delete
+          await tasksApi.delete(deleteId); 
+          setDeleteId(null); 
+      } }} title="Discard Task" message="Remove this operational entry from the node history?" />
     </div>
   );
 };

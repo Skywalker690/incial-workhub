@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Incial Workhub</title>
+  <title>Incial Workhub | SaaS OS</title>
 
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
@@ -13,47 +13,57 @@
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- External Styles -->
-  <link rel="stylesheet" href="styles.css">
-
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
 
-  <!-- External Tailwind Configuration -->
-  <script src="tailwind.config.js"></script>
   <script>
-    window.tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f4ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+              950: '#1e1b4b',
+            }
+          },
+          borderRadius: {
+            '3xl': '2rem',
+            '4xl': '2.5rem',
+            '5xl': '3.5rem',
+          },
+          boxShadow: {
+            'premium': '0 25px 50px -12px rgba(0, 0, 0, 0.05)',
+            'glass-glow': '0 0 20px rgba(99, 102, 241, 0.4)',
+            'inner-glass': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.4)',
+          },
+          spacing: {
+            '80': '20rem',
+            '32': '8rem',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
         }
-      },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
       }
     }
-  }
-}
-
   </script>
+
+  <link rel="stylesheet" href="styles.css">
+
 </head>
 
-<body>
-  <div id="root"></div>
+<body class="bg-[#f8fafc] text-slate-900 antialiased overflow-y-auto">
+  <div id="root" class="h-full"></div>
   <script type="module" src="index.tsx"></script>
-
 </body>
 
 </html>

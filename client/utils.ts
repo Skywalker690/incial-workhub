@@ -9,15 +9,11 @@ export const formatMoney = (amount: number) => {
 
 export const formatDate = (dateString: string) => {
   if (!dateString) return '-';
-  
-  // Check for YYYY-MM-DD format (Task Due Dates, CRM Followups) - Treat as plain date
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
       const [y, m, d] = dateString.split('-').map(Number);
-      const date = new Date(y, m - 1, d); // Local midnight construction to preserve date
+      const date = new Date(y, m - 1, d);
       return new Intl.DateTimeFormat('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
   }
-
-  // ISO Strings (Timestamps)
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('en-IN', { 
       month: 'short', 
@@ -30,7 +26,6 @@ export const formatDate = (dateString: string) => {
 export const formatDateTime = (dateString: string) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  // Display time in IST (Asia/Kolkata) to match backend data
   return new Intl.DateTimeFormat('en-IN', { 
     day: 'numeric', 
     month: 'short', 
@@ -43,167 +38,132 @@ export const formatDateTime = (dateString: string) => {
 };
 
 export const getFollowUpColor = (dateString: string) => {
-  if (!dateString) return 'text-gray-500';
-  
-  // Get Today in IST as YYYY-MM-DD
+  if (!dateString) return 'text-slate-400';
   const todayISTStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-  
-  // Parse Today IST to a local Date object for comparison
   const [ty, tm, td] = todayISTStr.split('-').map(Number);
   const today = new Date(ty, tm - 1, td);
   today.setHours(0, 0, 0, 0);
   
-  // Parse input date
   let checkDate: Date;
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
       const [y, m, d] = dateString.split('-').map(Number);
       checkDate = new Date(y, m - 1, d);
   } else {
-      // If it's a timestamp, convert to IST date string first then parse
       const istStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(dateString));
       const [y, m, d] = istStr.split('-').map(Number);
       checkDate = new Date(y, m - 1, d);
   }
   checkDate.setHours(0, 0, 0, 0);
 
-  if (checkDate < today) return 'text-red-600 font-semibold';
-  if (checkDate.getTime() === today.getTime()) return 'text-yellow-600 font-semibold';
-  return 'text-green-600';
+  if (checkDate < today) return 'text-rose-600 font-bold drop-shadow-sm';
+  if (checkDate.getTime() === today.getTime()) return 'text-amber-600 font-bold drop-shadow-sm';
+  return 'text-emerald-600 font-medium';
 };
 
 export const getStatusStyles = (status: string) => {
+  const base = "font-black tracking-[0.15em] uppercase shadow-inner-glass border ";
   switch (status?.toLowerCase()) {
-    case 'onboarded': return 'bg-green-100 text-green-700 border-green-200';
-    case 'completed': return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'drop': return 'bg-red-100 text-red-700 border-red-200';
-    case 'on progress': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'quote sent': return 'bg-blue-100 text-blue-700 border-blue-200';
-    case 'lead': return 'bg-gray-100 text-gray-700 border-gray-200';
-    // Default fallback for custom statuses
-    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'onboarded': return base + 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 glass-panel';
+    case 'completed': return base + 'bg-brand-500/10 text-brand-600 border-brand-500/20 glass-panel';
+    case 'drop': return base + 'bg-rose-500/10 text-rose-600 border-rose-500/20 glass-panel';
+    case 'on progress': return base + 'bg-amber-500/10 text-amber-600 border-amber-500/20 glass-panel';
+    case 'quote sent': return base + 'bg-sky-500/10 text-sky-600 border-sky-500/20 glass-panel';
+    case 'lead': return base + 'bg-slate-500/10 text-slate-600 border-slate-500/20 glass-panel';
+    default: return base + 'bg-slate-100 text-slate-600 border-slate-200';
   }
 };
-
-// --- COMPANIES MODULE UTILS ---
-
-export const getCompanyStatusStyles = (status: string) => {
-  switch (status?.toLowerCase()) {
-    // Company Specific
-    case 'running': return 'bg-green-100 text-green-700 ring-green-600/20';
-    case 'not_started': return 'bg-blue-100 text-blue-700 ring-blue-600/20';
-    case 'discontinued': return 'bg-red-100 text-red-700 ring-red-600/20';
-    case 'completed': return 'bg-purple-100 text-purple-700 ring-purple-600/20';
-    
-    // CRM Inherited
-    case 'onboarded': return 'bg-emerald-100 text-emerald-700 ring-emerald-600/20';
-    case 'drop': return 'bg-rose-100 text-rose-700 ring-rose-600/20';
-    case 'on progress': return 'bg-amber-100 text-amber-700 ring-amber-600/20';
-    case 'quote sent': return 'bg-sky-100 text-sky-700 ring-sky-600/20';
-    case 'lead': return 'bg-slate-100 text-slate-700 ring-slate-600/20';
-
-    // Fallback for custom
-    default: return 'bg-slate-50 text-slate-600 ring-slate-500/10';
-  }
-};
-
-export const getWorkTypeStyles = (work: string) => {
-  const map: Record<string, string> = {
-    'Marketing': 'bg-red-100 text-red-700 border-red-200',
-    'Website': 'bg-orange-100 text-orange-700 border-orange-200',
-    'Poster': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    'Video': 'bg-green-100 text-green-700 border-green-200',
-    'VFX': 'bg-blue-100 text-blue-700 border-blue-200',
-    'LinkedIn': 'bg-sky-100 text-sky-700 border-sky-200',
-    'Other': 'bg-gray-100 text-gray-700 border-gray-200',
-    'Ads': 'bg-purple-100 text-purple-700 border-purple-200',
-    'Branding': 'bg-rose-100 text-rose-800 border-rose-200',
-    'UI/UX': 'bg-slate-200 text-slate-800 border-slate-300'
-  };
-  return map[work] || 'bg-gray-100 text-gray-700 border-gray-200';
-};
-
-// --- TASKS MODULE UTILS ---
 
 export const getTaskStatusStyles = (status: string) => {
   const lowerStatus = status?.toLowerCase();
-  if (lowerStatus === 'completed' || lowerStatus === 'done') return 'bg-green-100 text-green-700 border-green-200';
-  if (lowerStatus === 'posted') return 'bg-sky-100 text-sky-700 border-sky-200';
-  if (lowerStatus === 'in review') return 'bg-purple-100 text-purple-700 border-purple-200';
-  if (lowerStatus === 'in progress') return 'bg-blue-100 text-blue-700 border-blue-200';
-  if (lowerStatus === 'dropped') return 'bg-red-100 text-red-700 border-red-200';
-  if (lowerStatus === 'not started') return 'bg-gray-100 text-gray-700 border-gray-200';
-  
-  // Custom fallback
-  return 'bg-slate-100 text-slate-700 border-slate-200';
+  const base = "font-black tracking-widest uppercase border ";
+  if (lowerStatus === 'completed' || lowerStatus === 'done') return base + 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+  if (lowerStatus === 'posted') return base + 'bg-sky-500/10 text-sky-600 border-sky-500/20';
+  if (lowerStatus === 'in review') return base + 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+  if (lowerStatus === 'in progress') return base + 'bg-brand-500/10 text-brand-600 border-brand-500/20';
+  if (lowerStatus === 'dropped') return base + 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+  return base + 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
 export const getTaskPriorityStyles = (priority: string) => {
   switch (priority) {
-    case 'High': return 'bg-red-50 text-red-700 border-red-100';
-    case 'Medium': return 'bg-yellow-50 text-yellow-700 border-yellow-100';
-    case 'Low': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-    default: return 'bg-gray-50 text-gray-600';
+    case 'High': return 'bg-rose-500/10 text-rose-700 border-rose-500/20 font-black tracking-widest uppercase';
+    case 'Medium': return 'bg-amber-500/10 text-amber-700 border-amber-500/20 font-black tracking-widest uppercase';
+    case 'Low': return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 font-black tracking-widest uppercase';
+    default: return 'bg-slate-50 text-slate-600 font-bold';
   }
 };
-
-// --- MEETING MODULE UTILS ---
 
 export const getMeetingStatusStyles = (status: string) => {
+  const base = "font-black tracking-widest uppercase border ";
   switch (status) {
-      case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Postponed': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Scheduled': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'Completed': return base + 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+      case 'Cancelled': return base + 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+      case 'Postponed': return base + 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      case 'Scheduled': return base + 'bg-sky-500/10 text-sky-600 border-sky-500/20';
+      default: return base + 'bg-slate-100 text-slate-600 border-slate-200';
   }
 };
 
-// --- GENERAL HELPERS ---
+export const getWorkTypeStyles = (work: string) => {
+  const lower = work?.toLowerCase() || '';
+  // Premium base style with standard layout
+  const base = "px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border shadow-sm transition-all hover:scale-105 cursor-default ";
+  
+  if (lower.includes('website') || lower.includes('software') || lower.includes('app') || lower.includes('tech') || lower.includes('dev')) 
+    return base + 'bg-indigo-50 text-indigo-700 border-indigo-100';
+  
+  if (lower.includes('brand') || lower.includes('design') || lower.includes('ui') || lower.includes('creative')) 
+    return base + 'bg-pink-50 text-pink-700 border-pink-100';
+  
+  if (lower.includes('marketing') || lower.includes('seo') || lower.includes('growth') || lower.includes('ads')) 
+    return base + 'bg-emerald-50 text-emerald-700 border-emerald-100';
+    
+  if (lower.includes('video') || lower.includes('photo') || lower.includes('media') || lower.includes('social') || lower.includes('content')) 
+    return base + 'bg-orange-50 text-orange-700 border-orange-100';
+
+  if (lower.includes('strategy') || lower.includes('consulting')) 
+    return base + 'bg-blue-50 text-blue-700 border-blue-100';
+
+  if (lower.includes('linkedin') || lower.includes('instagram') || lower.includes('facebook'))
+    return base + 'bg-sky-50 text-sky-700 border-sky-100';
+
+  return base + 'bg-slate-50 text-slate-600 border-slate-200';
+};
 
 export const isRecentlyUpdated = (dateString?: string, seconds: number = 10): boolean => {
     if (!dateString) return false;
     const date = new Date(dateString);
     const now = new Date();
-    // Check diff in seconds
     const diff = (now.getTime() - date.getTime()) / 1000;
     return diff < seconds;
 };
 
 export const exportToCSV = (data: any[], filename: string) => {
   if (!data || !data.length) return;
-
-  // Get headers from the first object
   const headers = Object.keys(data[0]);
-  
-  // Convert to CSV string
   const csvContent = [
-    headers.join(','), // Header row
+    headers.join(','),
     ...data.map(row => 
       headers.map(fieldName => {
         let value = row[fieldName];
-        // Handle null/undefined
         if (value === null || value === undefined) value = '';
-        // Handle strings with commas or newlines, arrays, objects
-        if (typeof value === 'string') {
-            value = `"${value.replace(/"/g, '""')}"`; // Escape quotes
-        } else if (Array.isArray(value)) {
-            value = `"${value.join('; ')}"`;
-        } else if (typeof value === 'object' && value !== null) {
-            value = `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+        if (typeof value === 'object') value = JSON.stringify(value);
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
         }
-        return value;
+        return stringValue;
       }).join(',')
     )
   ].join('\n');
-
-  // Create blob and download link
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `${filename}.csv`);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename.endsWith('.csv') ? filename : `${filename}.csv`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 };

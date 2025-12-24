@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Save, Edit2, User, Phone, Mail, Calendar, Briefcase, FileText, Tag, DollarSign, CheckCircle, Clock, AlertCircle, History, ExternalLink, HardDrive, Linkedin, Instagram, Facebook, Twitter, Globe, Link as LinkIcon, Maximize2, Minimize2, MapPin, Hash, Building, Megaphone, Plus, Image } from 'lucide-react';
 import { CRMEntry, SocialLinks, CRMStatus, User as UserType } from '../../types';
@@ -6,6 +7,7 @@ import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { CustomSelect } from '../ui/CustomSelect';
 import { UserSelect } from '../ui/UserSelect';
 import { usersApi } from '../../services/api';
+import { useLayout } from '../../context/LayoutContext';
 
 interface CRMFormProps {
   isOpen: boolean;
@@ -37,12 +39,12 @@ const PREDEFINED_TAGS = ['Lead', 'Customer', 'VIP', 'Follow-up', 'Cold', 'Hot', 
 const PREDEFINED_WORK = ['branding', 'poster', 'video', 'design', 'ui ux', 'shopify', 'website', 'marketing', 'software', 'consulting', 'development'];
 
 export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+  const { isSidebarCollapsed } = useLayout();
   const [formData, setFormData] = useState<Partial<CRMEntry>>({});
   const [mode, setMode] = useState<'view' | 'edit'>('edit');
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const [users, setUsers] = useState<UserType[]>([]);
   
-  // Custom input states
   const [customTag, setCustomTag] = useState('');
   const [customWork, setCustomWork] = useState('');
 
@@ -55,36 +57,24 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
             console.error("Failed to fetch assignees", e);
         }
     };
-    if (isOpen) {
-        fetchUsers();
-    }
+    if (isOpen) fetchUsers();
   }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
         if (initialData) {
-            setFormData(initialData);
+            setFormData({
+                ...initialData,
+                socials: initialData.socials || { website: '', linkedin: '', instagram: '', facebook: '' }
+            });
             setMode('view');
         } else {
+            const todayStr = new Date().toISOString().split('T')[0];
             setFormData({
-                company: '',
-                contactName: '',
-                email: '',
-                phone: '',
-                status: 'lead',
-                assignedTo: '',
-                dealValue: 0,
-                tags: [],
-                work: [],
-                leadSources: [],
-                driveLink: '',
-                address: '',
-                referenceId: '',
-                companyImageUrl: '',
-                socials: {},
-                lastContact: new Date().toISOString().split('T')[0],
-                nextFollowUp: new Date().toISOString().split('T')[0],
-                notes: '',
+                company: '', contactName: '', email: '', phone: '', status: 'lead', assignedTo: '',
+                dealValue: 0, tags: [], work: [], leadSources: [], driveLink: '', address: '',
+                referenceId: '', companyImageUrl: '', socials: { website: '', linkedin: '', instagram: '', facebook: '' },
+                lastContact: todayStr, nextFollowUp: todayStr, notes: '',
             });
             setMode('edit');
         }
@@ -101,370 +91,349 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
 
   const toggleTag = (tag: string) => {
       const currentTags = formData.tags || [];
-      if (currentTags.includes(tag)) {
-          setFormData(prev => ({ ...prev, tags: currentTags.filter(t => t !== tag) }));
-      } else {
-          setFormData(prev => ({ ...prev, tags: [...currentTags, tag] }));
-      }
-  };
-
-  const addCustomTag = () => {
-      if (!customTag.trim()) return;
-      const currentTags = formData.tags || [];
-      if (!currentTags.includes(customTag.trim())) {
-          setFormData(prev => ({ ...prev, tags: [...currentTags, customTag.trim()] }));
-      }
-      setCustomTag('');
+      const isSelected = currentTags.includes(tag);
+      setFormData(prev => ({ 
+          ...prev, 
+          tags: isSelected ? currentTags.filter(t => t !== tag) : [...currentTags, tag] 
+      }));
   };
 
   const toggleWork = (workLabel: string) => {
       const currentWork = formData.work || [];
-      const cleanWork = currentWork.filter(Boolean).map((w: any) => (w && typeof w === 'object') ? w.name : w);
-      
-      const exists = cleanWork.includes(workLabel);
-      
-      if (exists) {
-          setFormData(prev => ({ ...prev, work: cleanWork.filter(w => w !== workLabel) }));
-      } else {
-          setFormData(prev => ({ ...prev, work: [...cleanWork, workLabel] }));
-      }
+      const isSelected = currentWork.includes(workLabel);
+      setFormData(prev => ({ 
+          ...prev, 
+          work: isSelected ? currentWork.filter(w => w !== workLabel) : [...currentWork, workLabel] 
+      }));
   };
 
-  const addCustomWork = () => {
-      if (!customWork.trim()) return;
+  const handleAddCustomTag = () => {
+      const val = customTag.trim();
+      if (!val) return;
+      const currentTags = formData.tags || [];
+      if (!currentTags.includes(val)) {
+          setFormData(prev => ({ ...prev, tags: [...currentTags, val] }));
+      }
+      setCustomTag('');
+  };
+
+  const handleAddCustomWork = () => {
+      const val = customWork.trim();
+      if (!val) return;
       const currentWork = formData.work || [];
-      const cleanWork = currentWork.filter(Boolean).map((w: any) => (w && typeof w === 'object') ? w.name : w);
-      if (!cleanWork.includes(customWork.trim())) {
-          setFormData(prev => ({ ...prev, work: [...cleanWork, customWork.trim()] }));
+      if (!currentWork.includes(val)) {
+          setFormData(prev => ({ ...prev, work: [...currentWork, val] }));
       }
       setCustomWork('');
   };
 
-  const updateLeadSource = (source: string) => {
-      setFormData(prev => ({ ...prev, leadSources: [source] }));
-  };
-
-  const updateSocials = (key: keyof SocialLinks, value: string) => {
-      setFormData(prev => ({
-          ...prev,
-          socials: {
-              ...prev.socials,
-              [key]: value
-          }
-      }));
-  };
-
-  // --- Render View ---
   const renderView = () => (
-    <div className="space-y-6">
-        <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
-                        {formData.companyImageUrl ? (
-                            <img src={formData.companyImageUrl} alt={formData.company} className="h-full w-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                        ) : (
-                            <Building className="h-8 w-8 text-gray-300" />
-                        )}
+    <div className="space-y-6 md:space-y-8 animate-premium">
+        <div className="bg-slate-50/50 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 border border-slate-100 shadow-inner">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
+                    <div className="h-16 w-16 md:h-20 md:w-20 rounded-[1.5rem] md:rounded-[2rem] bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-md shrink-0">
+                        {formData.companyImageUrl ? <img src={formData.companyImageUrl} className="h-full w-full object-cover" /> : <Building className="h-8 w-8 text-slate-300" />}
                     </div>
-                    <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <h2 className="text-2xl font-bold text-gray-900 break-words">{formData.company}</h2>
-                            {formData.referenceId && (
-                                <span className="px-2 py-0.5 rounded-md bg-gray-200 text-gray-600 text-xs font-mono font-bold border border-gray-300">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
+                             <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter leading-none truncate">{formData.company}</h2>
+                             {formData.referenceId && (
+                                <span className="px-2 py-0.5 md:px-3 md:py-1 rounded-lg bg-slate-900 text-white text-[8px] md:text-[10px] font-mono font-black uppercase tracking-widest shadow-lg">
                                     {formData.referenceId}
                                 </span>
-                            )}
+                             )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-gray-600">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium">{formData.contactName}</span>
+                        <div className="flex items-center gap-2">
+                             <User className="h-3.5 w-3.5 text-indigo-400" />
+                             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 truncate">{formData.contactName}</span>
                         </div>
                     </div>
                 </div>
-                <div className={`px-4 py-1.5 rounded-full text-sm font-semibold border shadow-sm capitalize ${getStatusStyles(formData.status || '')}`}>
+                <div className={`px-4 py-1.5 md:px-5 md:py-2 rounded-2xl text-[9px] md:text-[10px] font-black border shadow-sm capitalize tracking-widest ${getStatusStyles(formData.status || '')}`}>
                     {formData.status}
                 </div>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-10 pt-6 md:pt-8 border-t border-slate-200/60">
                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Deal Value</p>
-                    <p className="text-xl font-bold text-gray-900">{formatMoney(formData.dealValue || 0)}</p>
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Deal Alpha</p>
+                    <p className="text-sm md:text-xl font-black text-slate-900">{formatMoney(formData.dealValue || 0)}</p>
                 </div>
                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Assigned To</p>
-                    <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700">
-                            {formData.assignedTo?.[0] || '?'}
-                        </div>
-                        <span className="font-medium text-gray-900 text-sm">{formData.assignedTo || 'Unassigned'}</span>
-                    </div>
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Assignee</p>
+                    <p className="text-sm md:text-xl font-black text-slate-900 truncate">{formData.assignedTo || 'Unassigned'}</p>
                 </div>
                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Next Follow Up</p>
-                    <div className={`flex items-center gap-1.5 font-semibold text-sm ${getFollowUpColor(formData.nextFollowUp || '')}`}>
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(formData.nextFollowUp || '')}
-                    </div>
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Next Pulse</p>
+                    <p className={`text-sm md:text-xl font-black ${getFollowUpColor(formData.nextFollowUp || '')}`}>{formatDate(formData.nextFollowUp || '')}</p>
                 </div>
                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Last Contact</p>
-                    <p className="text-gray-700 font-medium text-sm">{formatDate(formData.lastContact || '')}</p>
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registry ID</p>
+                    <p className="text-sm md:text-xl font-black text-slate-900 font-mono tracking-tighter">#INC-{formData.id || 'NEW'}</p>
                 </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <User className="h-4 w-4 text-brand-600" /> Contact Details
-                    </h3>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-sm">
-                            <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700 truncate">{formData.phone || 'No phone'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700 truncate">{formData.email || 'No email'}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-gray-700 truncate">{formData.address || 'No address'}</span>
-                        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <div className="bg-white/40 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white shadow-sm space-y-6">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-3"><MapPin className="h-4 w-4 text-indigo-500" /> Tactical HQ</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4 group">
+                        <div className="p-2.5 md:p-3 bg-slate-50 rounded-xl group-hover:bg-indigo-50 transition-colors"><Mail className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" /></div>
+                        <span className="text-xs md:text-sm font-bold text-slate-700 truncate">{formData.email || 'No Email'}</span>
+                    </div>
+                    <div className="flex items-center gap-4 group">
+                        <div className="p-2.5 md:p-3 bg-slate-50 rounded-xl group-hover:bg-indigo-50 transition-colors"><Phone className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" /></div>
+                        <span className="text-xs md:text-sm font-bold text-slate-700">{formData.phone || 'No Phone'}</span>
+                    </div>
+                    <div className="flex items-start gap-4 group">
+                        <div className="p-2.5 md:p-3 bg-slate-50 rounded-xl group-hover:bg-indigo-50 transition-colors shrink-0"><MapPin className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" /></div>
+                        <span className="text-xs md:text-sm font-bold text-slate-700 leading-relaxed">{formData.address || 'Physical location not logged'}</span>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-brand-600" /> Socials & Web
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                        {formData.socials && Object.entries(formData.socials).map(([key, val]) => {
-                            if (!val) return null;
-                            return (
-                                <a key={key} href={val} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:text-brand-600 hover:border-brand-200 transition-colors capitalize flex items-center gap-1.5">
-                                    <ExternalLink className="h-3 w-3" /> {key}
-                                </a>
-                            );
-                        })}
-                        {(!formData.socials || !Object.values(formData.socials).some(Boolean)) && (
-                            <span className="text-gray-400 text-sm italic">No social links added</span>
-                        )}
-                    </div>
+                <div className="pt-6 border-t border-slate-100">
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><History className="h-2.5 w-2.5" /> Last Contact Date</p>
+                    <p className="text-[10px] md:text-xs font-bold text-slate-700">{formatDate(formData.lastContact || '')}</p>
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-brand-600" /> Classification
-                    </h3>
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-xs font-medium text-gray-500 mb-2">Lead Source</p>
-                            {formData.leadSources && formData.leadSources.length > 0 ? (
-                                <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 inline-block">
-                                    {formData.leadSources[0]}
-                                </span>
-                            ) : <span className="text-gray-400 text-xs">-</span>}
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-gray-500 mb-2">Work Type</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {(formData.work || []).filter(Boolean).map((w: any) => {
-                                    const label = (w && typeof w === 'object') ? w.name : w;
-                                    return <span key={label} className={`px-2 py-1 text-[10px] font-bold rounded border ${getWorkTypeStyles(label)}`}>{label}</span>;
-                                })}
-                                {(!formData.work?.length) && <span className="text-gray-400 text-xs">-</span>}
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-gray-500 mb-2">Tags</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {(formData.tags || []).map(t => (
-                                    <span key={t} className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded border border-purple-100">{t}</span>
-                                ))}
-                                {(!formData.tags?.length) && <span className="text-gray-400 text-xs">-</span>}
-                            </div>
-                        </div>
-                    </div>
+            <div className="bg-white/40 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white shadow-sm space-y-6">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-3"><Globe className="h-4 w-4 text-indigo-500" /> System Integration</h3>
+                <div className="flex flex-wrap gap-2">
+                    {formData.socials && Object.entries(formData.socials).map(([key, val]) => val && (
+                        <a key={key} href={val as string} target="_blank" className="px-3 md:px-4 py-2 bg-white border border-slate-100 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 hover:border-indigo-100 transition-all flex items-center gap-2 shadow-sm">
+                            <ExternalLink className="h-3 w-3" /> {key}
+                        </a>
+                    ))}
+                    {formData.driveLink && (
+                        <a href={formData.driveLink} target="_blank" className="px-3 md:px-4 py-2 bg-blue-600 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-xl">
+                            <HardDrive className="h-3 w-3" /> Digital Vault
+                        </a>
+                    )}
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-brand-600" /> Notes
-                    </h3>
-                    <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap min-h-[80px]">
-                        {formData.notes || <span className="text-gray-400 italic">No notes added.</span>}
+                <div className="pt-6 border-t border-slate-100 mt-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Tag className="h-3.5 w-3.5" /> Metadata
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {formData.work?.map((w) => (
+                            <span key={w} className={`px-2 py-0.5 text-[8px] md:text-[9px] font-black uppercase rounded-lg border ${getWorkTypeStyles(w)}`}>{w}</span>
+                        ))}
+                        {formData.tags?.map(t => (
+                            <span key={t} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 text-[8px] md:text-[9px] font-black uppercase rounded-lg">{t}</span>
+                        ))}
                     </div>
                 </div>
             </div>
         </div>
+        
+        <div className="bg-white/40 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-3"><FileText className="h-4 w-4 text-indigo-500" /> Briefing Intelligence</h3>
+            <div className="prose prose-sm max-w-none text-slate-600 font-medium whitespace-pre-wrap italic leading-relaxed text-sm">
+                {formData.notes || 'No briefing available for this project node.'}
+            </div>
+        </div>
+
+        {formData.lastUpdatedBy && (
+            <div className="flex items-center justify-end pt-4 border-t border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <History className="h-3 w-3 mr-2" />
+                <span>Last updated by <span className="text-indigo-600">{formData.lastUpdatedBy}</span> on {formatDateTime(formData.lastUpdatedAt || '')}</span>
+            </div>
+        )}
     </div>
   );
 
-  // --- Render Edit ---
   const renderEdit = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Client / Company <span className="text-red-500">*</span></label>
-                <div className="relative">
-                    <Building className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input type="text" required className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none" 
-                        value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} placeholder="Company Name" />
+    <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8 animate-premium">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Entity Name <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <Building className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                            <input type="text" required className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl lg:rounded-[1.5rem] text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner" 
+                                value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} placeholder="Acme Corp" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Reference ID</label>
+                        <div className="relative">
+                            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                            <input type="text" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl lg:rounded-[1.5rem] text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner font-mono" 
+                                value={formData.referenceId || ''} onChange={e => setFormData({...formData, referenceId: e.target.value})} placeholder="REF-2025-001" />
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Company Logo URL</label>
-                <div className="relative">
-                    <Image className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input type="url" className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={formData.companyImageUrl || ''} onChange={e => setFormData({...formData, companyImageUrl: e.target.value})} placeholder="https://example.com/logo.png" />
-                </div>
-            </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Contact Name</label>
-                <div className="relative">
-                    <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input type="text" className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={formData.contactName || ''} onChange={e => setFormData({...formData, contactName: e.target.value})} placeholder="Full Name" />
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Email</label>
-                <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input type="email" className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="email@example.com" />
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone</label>
-                <div className="relative">
-                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input type="tel" className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                        value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+91 00000 00000" />
-                </div>
-            </div>
-        </div>
-
-        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <CustomSelect label="Status" value={formData.status || 'lead'} onChange={(val) => setFormData({...formData, status: val as CRMStatus})} options={STATUS_OPTIONS} />
-                <UserSelect label="Assigned To" value={formData.assignedTo || ''} onChange={(val) => setFormData({...formData, assignedTo: val})} users={users} />
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Value (₹)</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">HQ Address</label>
                     <div className="relative">
-                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                        <input type="number" className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                            value={formData.dealValue || ''} onChange={e => setFormData({...formData, dealValue: parseFloat(e.target.value) || 0})} />
+                        <MapPin className="absolute left-4 top-4 h-4 w-4 text-slate-300" />
+                        <textarea className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl lg:rounded-[1.5rem] text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner h-24 resize-none"
+                            value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Corporate location details..." />
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                <div className="col-span-1">
-                    <CustomDatePicker 
-                        label="Last Contact Date" 
-                        value={formData.lastContact || ''} 
-                        onChange={(date) => setFormData({...formData, lastContact: date})} 
-                    />
+
+            <div className="space-y-6">
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Identity Asset (Logo URL)</label>
+                    <div className="relative">
+                        <Image className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                        <input type="url" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl lg:rounded-[1.5rem] text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner"
+                            value={formData.companyImageUrl || ''} onChange={e => setFormData({...formData, companyImageUrl: e.target.value})} placeholder="https://..." />
+                    </div>
                 </div>
-                <div className="col-span-1">
-                    <CustomDatePicker 
-                        label="Next Follow Up" 
-                        value={formData.nextFollowUp || ''} 
-                        onChange={(date) => setFormData({...formData, nextFollowUp: date})} 
-                    />
+                <div className="h-32 md:h-40 rounded-[1.5rem] md:rounded-[2rem] bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
+                    {formData.companyImageUrl ? (
+                        <img src={formData.companyImageUrl} className="h-full w-full object-cover" />
+                    ) : (
+                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center px-4">Asset Preview</span>
+                    )}
                 </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-                <CustomSelect 
-                    label="Lead Source"
-                    value={formData.leadSources && formData.leadSources.length > 0 ? formData.leadSources[0] : ''}
-                    onChange={(val) => updateLeadSource(val)}
-                    options={SOURCE_OPTIONS}
-                    allowCustom={true}
-                    placeholder="Select or type source..."
-                />
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
-                    <Briefcase className="h-3.5 w-3.5" /> Work Type
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                    {PREDEFINED_WORK.map(opt => {
-                        const cleanWork = (formData.work || []).filter(Boolean).map((w: any) => (w && typeof w === 'object') ? w.name : w);
-                        const isSelected = cleanWork.includes(opt);
-                        return (
-                            <button key={opt} type="button" onClick={() => toggleWork(opt)}
-                                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${isSelected ? 'bg-emerald-100 text-emerald-700 border-emerald-200 ring-2 ring-emerald-500' : 'bg-white text-gray-500 border-gray-200'}`}>
-                                {opt}
-                            </button>
-                        );
-                    })}
-                    {(formData.work || []).filter(Boolean).filter((w: any) => {
-                        const val = (w && typeof w === 'object') ? w.name : w;
-                        return val && !PREDEFINED_WORK.includes(val);
-                    }).map((opt: any) => {
-                        const label = (opt && typeof opt === 'object') ? opt.name : opt;
-                        if (!label) return null;
-                        return (
-                            <button key={label} type="button" onClick={() => toggleWork(label)}
-                                className="px-3 py-1.5 text-[10px] font-bold rounded-lg border bg-brand-50 text-brand-700 border-brand-200 ring-2 ring-brand-500">
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className="flex gap-2">
-                    <input type="text" placeholder="Add custom work..." className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
-                        value={customWork} onChange={e => setCustomWork(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addCustomWork())} />
-                    <button type="button" onClick={addCustomWork} className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 text-gray-600"><Plus className="h-5 w-5" /></button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+             <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Liaison Contact</label>
+                <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input type="text" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                        value={formData.contactName || ''} onChange={e => setFormData({...formData, contactName: e.target.value})} placeholder="POC Name" />
                 </div>
             </div>
+            <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email Endpoint</label>
+                <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input type="email" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                        value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="liaison@company.com" />
+                </div>
+            </div>
+            <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Phone</label>
+                <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input type="tel" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                        value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+91..." />
+                </div>
+            </div>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 p-6 md:p-8 bg-slate-50/50 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-inner">
+            <CustomSelect label="Pipeline Stage" value={formData.status || 'lead'} onChange={(val) => setFormData({...formData, status: val as CRMStatus})} options={STATUS_OPTIONS} />
+            <UserSelect label="Node Assignee" value={formData.assignedTo || ''} onChange={(val) => setFormData({...formData, assignedTo: val})} users={users} />
             <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
-                    <Tag className="h-3.5 w-3.5" /> Tags
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                    {PREDEFINED_TAGS.map(opt => {
-                        const isSelected = formData.tags?.includes(opt);
-                        return (
-                            <button key={opt} type="button" onClick={() => toggleTag(opt)}
-                                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${isSelected ? 'bg-purple-100 text-purple-700 border-purple-200 ring-2 ring-purple-500' : 'bg-white text-gray-500 border-gray-200'}`}>
-                                {opt}
-                            </button>
-                        );
-                    })}
-                    {(formData.tags || []).filter(t => !PREDEFINED_TAGS.includes(t)).map(opt => (
-                        <button key={opt} type="button" onClick={() => toggleTag(opt)}
-                            className="px-3 py-1.5 text-[10px] font-bold rounded-lg border bg-amber-50 text-amber-700 border-amber-200 ring-2 ring-amber-500">
-                            {opt}
-                        </button>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Valuation (₹)</label>
+                <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input type="number" className="w-full pl-10 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                        value={formData.dealValue || ''} onChange={e => setFormData({...formData, dealValue: parseFloat(e.target.value) || 0})} />
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <CustomDatePicker label="Last Contact Date" value={formData.lastContact || ''} onChange={(date) => setFormData({...formData, lastContact: date})} />
+            <CustomDatePicker label="Next Follow Up Pulse" value={formData.nextFollowUp || ''} onChange={(date) => setFormData({...formData, nextFollowUp: date})} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Drive URL</label>
+                <div className="relative">
+                    <HardDrive className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                    <input type="url" className="w-full pl-12 pr-6 py-3.5 md:py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none shadow-inner"
+                        value={formData.driveLink || ''} onChange={e => setFormData({...formData, driveLink: e.target.value})} placeholder="https://drive..." />
+                </div>
+            </div>
+            <div>
+                <CustomSelect label="Lead Intel Source" value={formData.leadSources?.[0] || ''} onChange={(val) => setFormData(prev => ({ ...prev, leadSources: [val] }))} options={SOURCE_OPTIONS} allowCustom={true} placeholder="Origin Node" />
+            </div>
+        </div>
+
+        <div className="bg-white/40 p-5 md:p-8 rounded-[2rem] border border-white space-y-6 shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-3"><Globe className="h-4 w-4 text-indigo-500" /> Online Presence Registry</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                {['website', 'linkedin', 'instagram', 'facebook'].map(social => (
+                    <div key={social}>
+                        <label className="block text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 capitalize">{social} Node</label>
+                        <input type="url" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                            value={(formData.socials as any)?.[social] || ''} onChange={e => setFormData(prev => ({ ...prev, socials: { ...prev.socials, [social]: e.target.value } }))} placeholder="https://..." />
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <div className="space-y-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Briefcase className="h-3.5 w-3.5" /> Scope of Work</label>
+                <div className="flex flex-wrap gap-2 p-4 md:p-6 bg-white/40 border border-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
+                    {PREDEFINED_WORK.map(opt => (
+                        <button key={opt} type="button" onClick={() => toggleWork(opt)}
+                            className={`px-3 py-1.5 md:px-4 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all ${
+                                (formData.work || []).includes(opt) ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-200'
+                            }`}>{opt}</button>
+                    ))}
+                    {(formData.work || []).filter(w => !PREDEFINED_WORK.includes(w)).map(w => (
+                        <button key={w} type="button" onClick={() => toggleWork(w)}
+                            className="px-3 py-1.5 md:px-4 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-xl border bg-emerald-600 text-white border-emerald-500 shadow-lg">{w}</button>
                     ))}
                 </div>
                 <div className="flex gap-2">
-                    <input type="text" placeholder="Add custom tag..." className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
-                        value={customTag} onChange={e => setCustomTag(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addCustomTag())} />
-                    <button type="button" onClick={addCustomTag} className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 text-gray-600"><Plus className="h-5 w-5" /></button>
+                    <input type="text" placeholder="Custom Scope..." className="flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold border border-slate-200 rounded-[1.25rem] md:rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all bg-white"
+                        value={customWork} onChange={e => setCustomWork(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomWork())} />
+                    <button type="button" onClick={handleAddCustomWork} className="p-3.5 md:p-4 bg-slate-900 text-white rounded-[1.25rem] md:rounded-[1.5rem] hover:bg-slate-800 active:scale-95 transition-all"><Plus className="h-5 w-5" /></button>
+                </div>
+            </div>
+            <div className="space-y-4">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Tag className="h-3.5 w-3.5" /> Identity Tags</label>
+                <div className="flex flex-wrap gap-2 p-4 md:p-6 bg-white/40 border border-white rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
+                    {PREDEFINED_TAGS.map(opt => (
+                        <button key={opt} type="button" onClick={() => toggleTag(opt)}
+                            className={`px-3 py-1.5 md:px-4 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-xl border transition-all ${
+                                (formData.tags || []).includes(opt) ? 'bg-purple-600 text-white border-purple-500 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-purple-200'
+                            }`}>{opt}</button>
+                    ))}
+                    {(formData.tags || []).filter(t => !PREDEFINED_TAGS.includes(t)).map(t => (
+                        <button key={t} type="button" onClick={() => toggleTag(t)}
+                            className="px-3 py-1.5 md:px-4 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-xl border bg-amber-500 text-white border-amber-400 shadow-lg">{t}</button>
+                    ))}
+                </div>
+                <div className="flex gap-2">
+                    <input type="text" placeholder="Custom Tag..." className="flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold border border-slate-200 rounded-[1.25rem] md:rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all bg-white"
+                        value={customTag} onChange={e => setCustomTag(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomTag())} />
+                    <button type="button" onClick={handleAddCustomTag} className="p-3.5 md:p-4 bg-slate-900 text-white rounded-[1.25rem] md:rounded-[1.5rem] hover:bg-slate-800 active:scale-95 transition-all"><Plus className="h-5 w-5" /></button>
                 </div>
             </div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-3 pt-6 border-t border-gray-100">
-            <button type="button" onClick={() => initialData ? setMode('view') : onClose()} className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg shadow-brand-500/30"><Save className="h-4 w-4" /> Save Changes</button>
+        <div>
+            <div className="flex items-center justify-between mb-4 ml-1">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tactical Briefing (Notes)</label>
+                <button type="button" onClick={() => setIsNotesExpanded(true)} className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2 hover:underline"><Maximize2 className="h-3 w-3" /> Fullscreen</button>
+            </div>
+            <textarea className="w-full px-6 md:px-8 py-6 bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none h-40 resize-none shadow-inner"
+                placeholder="Strategic briefing and deal intelligence..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} />
+        </div>
+
+        {formData.lastUpdatedBy && (
+            <div className="flex items-center justify-end pt-4 border-t border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                <History className="h-3 w-3 mr-2" />
+                <span>Last updated by <span className="text-indigo-600">{formData.lastUpdatedBy}</span> on {formatDateTime(formData.lastUpdatedAt || '')}</span>
+            </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 pt-8 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="w-full sm:w-auto px-8 py-4 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Discard</button>
+            <button type="submit" className="w-full sm:w-auto px-10 py-4 bg-slate-950 text-white rounded-[1.25rem] md:rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3">
+                <Save className="h-4 w-4 text-indigo-400" /> Committ Identity
+            </button>
         </div>
     </form>
   );
@@ -472,33 +441,32 @@ export const CRMForm: React.FC<CRMFormProps> = ({ isOpen, onClose, onSubmit, ini
   return (
     <>
         {isNotesExpanded && (
-            <div className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200">
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><FileText className="h-5 w-5 text-gray-500" /> Notes Editor</h3>
-                    <button type="button" onClick={() => setIsNotesExpanded(false)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"><Minimize2 className="h-4 w-4" /> Done</button>
+            <div className="fixed inset-0 z-[200] bg-white flex flex-col animate-premium">
+                <div className="flex items-center justify-between p-5 md:p-8 border-b border-slate-100">
+                    <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-4"><FileText className="h-6 w-6 text-indigo-600" /> Tactical Editor</h3>
+                    <button type="button" onClick={() => setIsNotesExpanded(false)} className="px-6 md:px-8 py-3 md:py-4 bg-slate-950 text-white rounded-2xl flex items-center gap-3 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95"><Minimize2 className="h-4 w-4 text-indigo-400" /> Close Editor</button>
                 </div>
-                <div className="flex-1 p-6 overflow-y-auto max-w-5xl mx-auto w-full">
-                    {mode === 'edit' ? (
-                        <textarea className="w-full h-full p-4 text-base text-gray-800 bg-transparent border-none focus:ring-0 resize-none outline-none leading-relaxed" placeholder="Type your notes here..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} autoFocus />
-                    ) : (
-                        <div className="prose prose-lg max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed">{formData.notes || <span className="text-gray-400 italic">No notes provided.</span>}</div>
-                    )}
+                <div className="flex-1 p-6 md:p-12 max-w-5xl mx-auto w-full">
+                    <textarea className="w-full h-full p-4 md:p-8 text-base md:text-lg font-medium text-slate-700 bg-transparent border-none focus:ring-0 resize-none outline-none leading-relaxed" placeholder="Type tactical notes here..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} autoFocus />
                 </div>
             </div>
         )}
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-5 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-800 truncate pr-4">{mode === 'view' ? 'Deal Details' : (initialData ? 'Edit Deal' : 'New Deal')}</h2>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        {mode === 'view' && (
-                            <button onClick={() => setMode('edit')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"><Edit2 className="h-4 w-4" /> Edit</button>
-                        )}
-                        <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"><X className="h-5 w-5" /></button>
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/40 backdrop-blur-md p-0 sm:p-3 md:p-6" onClick={onClose}>
+            <div 
+                className={`bg-white/90 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3rem] shadow-2xl w-full max-w-4xl max-h-[100vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-white/60 transform transition-all duration-500 ease-out scale-100 ${
+                    isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'
+                }`} 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between p-5 sm:p-6 md:p-8 border-b border-slate-100 bg-white/40 sticky top-0 z-20">
+                    <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight truncate pr-4">{mode === 'view' ? 'Identity Overview' : (initialData ? 'Synchronize Record' : 'New Strategic Deal')}</h2>
+                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                        {mode === 'view' && <button onClick={() => setMode('edit')} className="px-4 py-2 md:px-6 md:py-2.5 bg-slate-950 text-white rounded-xl md:rounded-2xl flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95"><Edit2 className="h-3.5 w-3.5 text-indigo-400" /> Modify</button>}
+                        <button onClick={onClose} className="p-2 md:p-3 text-slate-400 hover:text-slate-900 transition-all"><X className="h-6 w-6" /></button>
                     </div>
                 </div>
-                <div className="overflow-y-auto p-4 md:p-6 flex-1 custom-scrollbar">
+                <div className="overflow-y-auto p-5 md:p-10 pb-20 flex-1 custom-scrollbar">
                     {mode === 'view' ? renderView() : renderEdit()}
                 </div>
             </div>

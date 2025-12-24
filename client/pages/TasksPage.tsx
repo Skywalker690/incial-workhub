@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '../components/layout/Navbar';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -10,13 +9,17 @@ import { TasksCalendar } from '../components/tasks/TasksCalendar';
 import { TasksFilter } from '../components/tasks/TasksFilter';
 import { TaskForm } from '../components/tasks/TaskForm';
 import { DeleteConfirmationModal } from '../components/ui/DeleteConfirmationModal';
-import { CheckSquare, Plus, LayoutList, Kanban, Calendar as CalendarIcon, User, Archive, ChevronDown, ChevronRight, Activity, Zap, CheckCircle2 } from 'lucide-react';
+import { Plus, LayoutList, Kanban, Calendar as CalendarIcon, User, Archive, ChevronDown, ChevronRight, Activity, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLayout } from '../context/LayoutContext';
+import { useToast } from '../context/ToastContext';
 
 type ViewMode = 'list' | 'kanban' | 'calendar' | 'mine';
 
 export const TasksPage: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
+  const { isSidebarCollapsed } = useLayout();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<number, string>>({});
   const [userAvatarMap, setUserAvatarMap] = useState<Record<string, string>>({});
@@ -27,239 +30,219 @@ export const TasksPage: React.FC = () => {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [filters, setFilters] = useState<TaskFilterState>({
-    search: '',
-    status: '',
-    priority: '',
-    assignedTo: ''
-  });
+  const [filters, setFilters] = useState<TaskFilterState>({ search: '', status: '', priority: '', assignedTo: '' });
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [tasksData, crmData, usersData] = await Promise.all([
-          tasksApi.getAll(),
-          crmApi.getAll(),
-          usersApi.getAll()
-      ]);
+      const [tasksData, crmData, usersData] = await Promise.all([tasksApi.getAll(), crmApi.getAll(), usersApi.getAll()]);
       setTasks(tasksData);
-      
       const cMap: Record<number, string> = {};
       crmData.crmList.forEach(c => cMap[c.id] = c.company);
       setCompanyMap(cMap);
-
       const uMap: Record<string, string> = {};
-      usersData.forEach(u => {
-          if (u.avatarUrl) uMap[u.name] = u.avatarUrl;
-      });
+      usersData.forEach(u => { if (u.avatarUrl) uMap[u.name] = u.avatarUrl; });
       setUserAvatarMap(uMap);
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setIsLoading(false); }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const filteredTasks = useMemo(() => {
-    let result = tasks.filter(t => {
+    return tasks.filter(t => {
       const isVisible = !t.companyId || t.isVisibleOnMainBoard;
-      if (!isVisible) return false;
-
+      if (!isVisible && viewMode !== 'mine') return false; 
       const matchesSearch = t.title.toLowerCase().includes(filters.search.toLowerCase());
       const matchesStatus = filters.status === '' || t.status === filters.status;
       const matchesPriority = filters.priority === '' || t.priority === filters.priority;
       const matchesAssignee = filters.assignedTo === '' || t.assignedTo === filters.assignedTo;
-
-      return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+      const matchesView = viewMode === 'mine' ? (user && t.assignedTo === user.name) : true;
+      return matchesSearch && matchesStatus && matchesPriority && matchesAssignee && matchesView;
     });
-
-    if (viewMode === 'mine' && user) {
-        result = result.filter(t => t.assignedTo === user.name);
-    }
-
-    return result;
   }, [tasks, filters, viewMode, user]);
 
   const { activeTasks, completedTasks } = useMemo(() => {
     const active = filteredTasks.filter(t => t.status !== 'Completed' && t.status !== 'Done');
     const completed = filteredTasks.filter(t => t.status === 'Completed' || t.status === 'Done');
-    active.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-    completed.sort((a, b) => new Date(b.lastUpdatedAt || b.createdAt).getTime() - new Date(a.lastUpdatedAt || a.createdAt).getTime());
     return { activeTasks: active, completedTasks: completed };
   }, [filteredTasks]);
 
-  // Task Velocity Stats
-  const velocityStats = useMemo(() => {
-      const highPriority = activeTasks.filter(t => t.priority === 'High').length;
-      const dueToday = activeTasks.filter(t => t.dueDate === new Date().toISOString().split('T')[0]).length;
-      return { highPriority, dueToday };
-  }, [activeTasks]);
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+  };
 
-  // ... (CRUD handlers same as before) ...
-  const handleCreate = () => { setEditingTask(undefined); setIsModalOpen(true); };
-  const handleEdit = (task: Task) => { setEditingTask(task); setIsModalOpen(true); };
-  const handleRequestDelete = (id: number) => { setDeleteId(id); };
-  const confirmDelete = async () => {
-      if (!deleteId) return;
-      const id = deleteId;
-      setTasks(tasks.filter(t => t.id !== id));
-      setDeleteId(null);
-      try { await tasksApi.delete(id); } catch (e) { fetchData(); }
+  const handleCreateAt = (dateStr: string) => {
+      setEditingTask({
+          id: 0,
+          title: '',
+          status: 'Not Started',
+          priority: 'Medium',
+          dueDate: dateStr,
+          assignedTo: user?.name || 'Unassigned',
+          createdAt: new Date().toISOString(),
+          companyId: undefined // Default to internal
+      } as Task);
+      setIsModalOpen(true);
   };
-  const handleSave = async (data: Partial<Task>) => {
-      const auditData = { lastUpdatedBy: user?.name || 'Unknown', lastUpdatedAt: new Date().toISOString() };
-      const finalData = { ...data, ...auditData };
-      try {
-          if (editingTask) {
-              const updated = { ...editingTask, ...finalData } as Task;
-              setTasks(tasks.map(t => t.id === updated.id ? updated : t));
-              await tasksApi.update(updated.id, finalData);
-          } else {
-              const newTask = await tasksApi.create(finalData as Task);
-              setTasks([newTask, ...tasks]);
-          }
-      } catch(e) { fetchData(); }
+
+  const handleSaveTask = async (data: Partial<Task>) => {
+    try {
+        if (data.id && data.id !== 0) {
+            // Optimistic update for edits
+            setTasks(prev => prev.map(t => t.id === data.id ? { ...t, ...data } as Task : t));
+            
+            await tasksApi.update(data.id, {
+                ...data,
+                lastUpdatedBy: user?.name || 'Unknown',
+                lastUpdatedAt: new Date().toISOString()
+            });
+            showToast("Milestone synchronized", "success");
+        } else {
+            const newTask = await tasksApi.create({
+                ...data,
+                companyId: data.companyId || undefined, // Explicitly internal if not set
+                isVisibleOnMainBoard: true // Main board tasks are always visible
+            } as any);
+            setTasks(prev => [...prev, newTask]);
+            showToast("Internal milestone created", "success");
+        }
+    } catch (e) {
+        showToast("Operation failed", "error");
+        fetchData(); // Revert/Reload on error
+    }
   };
+
   const handleStatusChange = async (task: Task, newStatus: TaskStatus) => {
-      const updated = { ...task, status: newStatus, lastUpdatedBy: user?.name || 'Unknown', lastUpdatedAt: new Date().toISOString() };
-      setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
-      await tasksApi.update(task.id, { status: newStatus, lastUpdatedBy: user?.name || 'Unknown', lastUpdatedAt: new Date().toISOString() });
+    const previousTasks = [...tasks];
+    // Optimistic Update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus, lastUpdatedAt: new Date().toISOString() } : t));
+    
+    try {
+      await tasksApi.update(task.id, { 
+        status: newStatus,
+        lastUpdatedBy: user?.name || 'Unknown',
+        lastUpdatedAt: new Date().toISOString()
+      });
+      // Silent success for smoother Kanban flow
+    } catch (e) { 
+        console.error(e);
+        showToast("Status update failed", "error");
+        setTasks(previousTasks); // Revert
+    }
   };
+
   const handlePriorityChange = async (task: Task, newPriority: TaskPriority) => {
-      const updated = { ...task, priority: newPriority, lastUpdatedBy: user?.name || 'Unknown', lastUpdatedAt: new Date().toISOString() };
-      setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
-      await tasksApi.update(task.id, { priority: newPriority, lastUpdatedBy: user?.name || 'Unknown', lastUpdatedAt: new Date().toISOString() });
+      const previousTasks = [...tasks];
+      // Optimistic Update
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, priority: newPriority, lastUpdatedAt: new Date().toISOString() } : t));
+
+      try {
+          await tasksApi.update(task.id, { 
+              priority: newPriority,
+              lastUpdatedBy: user?.name || 'Unknown',
+              lastUpdatedAt: new Date().toISOString()
+          });
+          showToast(`Priority updated to ${newPriority}`, "success");
+      } catch (e) { 
+          console.error(e);
+          showToast("Priority update failed", "error");
+          setTasks(previousTasks); // Revert
+      }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen mesh-bg relative">
+      <div className="glass-canvas" />
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out ${isSidebarCollapsed ? 'lg:ml-28' : 'lg:ml-80'}`}>
         <Navbar />
         
-        <main className="flex-1 flex flex-col p-4 md:p-8 overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] md:h-[calc(100vh-80px)]">
-          
-          {/* Header & Stats Bar */}
-          <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-8">
-             <div className="w-full">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-                        Tasks Dashboard
-                    </h1>
-                    <button 
-                        onClick={handleCreate}
-                        className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-brand-500/30 transition-all active:scale-95 w-full md:w-auto"
-                    >
-                        <Plus className="h-5 w-5" />
-                        New Task
-                    </button>
+        <div className="flex-1 px-4 lg:px-12 py-6 lg:py-10 pb-32">
+          <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 lg:gap-10 mb-10 lg:mb-16 animate-premium">
+             <div>
+                <div className="flex items-center gap-3 mb-2 lg:mb-4">
+                     <div className="h-2 lg:h-2.5 w-2 lg:w-2.5 rounded-full bg-brand-500 animate-pulse" />
+                     <span className="text-[9px] lg:text-[11px] font-black text-brand-600 uppercase tracking-[0.5em]">Global Task Nexus</span>
                 </div>
-
-                {/* Velocity Bar */}
-                <div className="flex flex-col sm:flex-row bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 w-full md:w-fit divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                    <div className="px-5 py-2 flex items-center gap-3">
-                        <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><Activity className="h-4 w-4" /></div>
-                        <div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Active</span>
-                            <span className="text-lg font-bold text-gray-900">{activeTasks.length}</span>
-                        </div>
-                    </div>
-                    <div className="px-5 py-2 flex items-center gap-3">
-                        <div className="p-1.5 bg-red-50 text-red-600 rounded-lg"><Zap className="h-4 w-4" /></div>
-                        <div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">High Priority</span>
-                            <span className="text-lg font-bold text-gray-900">{velocityStats.highPriority}</span>
-                        </div>
-                    </div>
-                    <div className="px-5 py-2 flex items-center gap-3">
-                        <div className="p-1.5 bg-green-50 text-green-600 rounded-lg"><CheckCircle2 className="h-4 w-4" /></div>
-                        <div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Done</span>
-                            <span className="text-lg font-bold text-gray-900">{completedTasks.length}</span>
-                        </div>
-                    </div>
-                </div>
+                <h1 className="text-4xl lg:text-8xl font-black text-slate-900 tracking-tighter leading-none display-text">Workflow.</h1>
+                <p className="text-slate-500 text-sm lg:text-xl mt-4 lg:mt-6 font-medium max-w-xl">Synchronizing strategic objectives and delivery milestones across nodes.</p>
              </div>
+             
+             <button 
+                onClick={() => { setEditingTask(undefined); setIsModalOpen(true); }} 
+                className="bg-slate-950 hover:bg-slate-900 text-white px-6 lg:px-10 py-3 lg:py-5 rounded-2xl lg:rounded-[2rem] flex items-center justify-center gap-3 lg:gap-4 font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all group w-full sm:w-auto text-xs lg:text-sm"
+             >
+                <Plus className="h-5 w-5 lg:h-6 lg:w-6 text-brand-400 group-hover:rotate-90 transition-transform duration-300" /> New Milestone
+             </button>
           </div>
 
-          <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col flex-1 overflow-hidden">
-            
-            {/* View Switcher */}
-            <div className="flex items-center gap-1 p-2 border-b border-gray-100 overflow-x-auto bg-gray-50/30 hide-scrollbar">
+          <div className="bg-white/30 backdrop-blur-3xl rounded-[2rem] lg:rounded-[3.5rem] border border-white/60 shadow-2xl flex flex-col mb-12 overflow-hidden">
+            <div className="flex items-center gap-1.5 p-2 lg:p-3 border-b border-white/40 bg-white/20 overflow-x-auto no-scrollbar">
                 {[
-                    { id: 'list', label: 'All Tasks', icon: LayoutList },
-                    { id: 'kanban', label: 'Kanban Board', icon: Kanban },
-                    { id: 'mine', label: 'My Tasks', icon: User },
-                    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+                    { id: 'list', label: 'Milestones', icon: LayoutList },
+                    { id: 'kanban', label: 'Strategic Board', icon: Kanban },
+                    { id: 'calendar', label: 'Timeline', icon: CalendarIcon },
+                    { id: 'mine', label: 'My Focus', icon: User },
                 ].map((view) => (
-                    <button
-                        key={view.id}
-                        onClick={() => setViewMode(view.id as ViewMode)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    <button 
+                        key={view.id} 
+                        onClick={() => setViewMode(view.id as ViewMode)} 
+                        className={`flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl text-[9px] lg:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                             viewMode === view.id 
-                            ? 'bg-white text-brand-700 shadow-sm ring-1 ring-gray-200' 
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                            ? 'bg-white text-brand-700 shadow-xl ring-1 ring-black/5' 
+                            : 'text-slate-400 hover:text-slate-700 hover:bg-white/40'
                         }`}
                     >
-                        <view.icon className="h-3.5 w-3.5" />
-                        {view.label}
+                        <view.icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" /> {view.label}
                     </button>
                 ))}
             </div>
 
-            {viewMode !== 'calendar' && (
-                <TasksFilter filters={filters} setFilters={setFilters} />
-            )}
+            {viewMode !== 'calendar' && <TasksFilter filters={filters} setFilters={setFilters} />}
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white p-0">
+            <div className="pb-10 overflow-x-auto">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
+                    <div className="p-40 text-center flex flex-col items-center justify-center gap-6">
+                        <div className="animate-spin rounded-full h-12 w-12 border-[4px] border-slate-100 border-t-brand-600" />
+                        <p className="text-slate-400 uppercase font-black tracking-[0.3em] text-xs animate-pulse">Scanning Operational Data...</p>
                     </div>
                 ) : (
                     <>
                         {(viewMode === 'list' || viewMode === 'mine') && (
-                            <div>
+                            <div className="px-4 py-6">
                                 <TasksTable 
                                     data={activeTasks} 
-                                    companyMap={companyMap}
-                                    userAvatarMap={userAvatarMap}
+                                    companyMap={companyMap} 
+                                    userAvatarMap={userAvatarMap} 
                                     onEdit={handleEdit} 
-                                    onDelete={handleRequestDelete}
-                                    onStatusChange={handleStatusChange}
-                                    onPriorityChange={handlePriorityChange}
+                                    onStatusChange={handleStatusChange} 
+                                    onPriorityChange={handlePriorityChange} 
                                 />
                                 
                                 {completedTasks.length > 0 && (
-                                    <div className="border-t border-gray-100">
+                                    <div className="mt-12 border-t border-slate-950/5 px-2 lg:px-6">
                                         <button 
-                                            onClick={() => setIsCompletedExpanded(!isCompletedExpanded)}
-                                            className="w-full flex items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                                            onClick={() => setIsCompletedExpanded(!isCompletedExpanded)} 
+                                            className="w-full flex items-center gap-4 py-6 lg:py-8 hover:bg-white/40 transition-colors text-left rounded-[2rem] px-4 lg:px-8 group"
                                         >
-                                            <div className="p-1 rounded-md bg-gray-200 group-hover:bg-gray-300 transition-colors">
-                                                {isCompletedExpanded ? <ChevronDown className="h-3 w-3 text-gray-600" /> : <ChevronRight className="h-3 w-3 text-gray-600" />}
+                                            <div className="p-2.5 rounded-xl bg-slate-50 group-hover:bg-slate-100 transition-colors">
+                                                {isCompletedExpanded ? <ChevronDown className="h-5 w-5 text-slate-500" /> : <ChevronRight className="h-5 w-5 text-slate-500" />}
                                             </div>
-                                            <Archive className="h-4 w-4 text-gray-500" />
-                                            <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
-                                                Completed Archives ({completedTasks.length})
-                                            </span>
+                                            <Archive className="h-6 w-6 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                                            <span className="text-[9px] lg:text-[11px] font-black text-slate-400 uppercase tracking-[0.4em]">Operational Archives ({completedTasks.length})</span>
                                         </button>
                                         
                                         {isCompletedExpanded && (
-                                            <div className="bg-gray-50/30 opacity-75">
-                                                 <TasksTable 
+                                            <div className="animate-premium">
+                                                <TasksTable 
                                                     data={completedTasks} 
-                                                    companyMap={companyMap}
-                                                    userAvatarMap={userAvatarMap}
+                                                    companyMap={companyMap} 
+                                                    userAvatarMap={userAvatarMap} 
                                                     onEdit={handleEdit} 
-                                                    onDelete={handleRequestDelete}
-                                                    onStatusChange={handleStatusChange}
-                                                    onPriorityChange={handlePriorityChange}
+                                                    onStatusChange={handleStatusChange} 
+                                                    onPriorityChange={handlePriorityChange} 
                                                 />
                                             </div>
                                         )}
@@ -267,46 +250,71 @@ export const TasksPage: React.FC = () => {
                                 )}
                             </div>
                         )}
+                        
                         {viewMode === 'kanban' && (
-                            <div className="h-full p-4 md:p-6 bg-gray-50/30">
+                            <div className="p-4 lg:p-8 h-[600px] lg:h-[700px] animate-premium overflow-x-auto">
                                 <TasksKanban 
                                     tasks={filteredTasks} 
-                                    userAvatarMap={userAvatarMap}
+                                    userAvatarMap={userAvatarMap} 
                                     onEdit={handleEdit} 
                                     onStatusChange={handleStatusChange} 
                                 />
                             </div>
                         )}
+                        
                         {viewMode === 'calendar' && (
-                            <div className="h-full p-4 md:p-6">
-                                <TasksCalendar tasks={filteredTasks} onEdit={handleEdit} />
+                            <div className="p-4 lg:p-8 h-[700px] lg:h-[800px] animate-premium">
+                                <TasksCalendar 
+                                    tasks={filteredTasks} 
+                                    onEdit={handleEdit} 
+                                    onCreateAt={handleCreateAt} 
+                                />
                             </div>
                         )}
                     </>
                 )}
             </div>
             
-            <div className="p-3 border-t border-gray-50 bg-white text-xs font-medium text-gray-400 flex justify-between rounded-b-3xl md:rounded-b-[2.5rem]">
-                <span>{activeTasks.length} active · {completedTasks.length} completed</span>
-                <span>Sorted by Priority & Date</span>
+            <div className="p-4 lg:p-8 border-t border-white/40 bg-white/20 text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex justify-between rounded-b-[2rem] lg:rounded-b-[3.5rem]">
+                <div className="flex items-center gap-2">
+                    <Activity className="h-3 w-3 lg:h-4 lg:w-4 text-emerald-500" />
+                    <span>System Index: Optimized</span>
+                </div>
+                <span>Sync Node: {new Date().toLocaleTimeString()}</span>
             </div>
           </div>
-        </main>
+        </div>
       </div>
 
       <TaskForm 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSave}
-        initialData={editingTask}
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleSaveTask} 
+        initialData={editingTask} 
         companyMap={companyMap}
+        onDelete={(id) => {
+            setIsModalOpen(false);
+            setDeleteId(id);
+        }}
       />
-
+      
       <DeleteConfirmationModal 
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={confirmDelete}
-        title="Delete Task"
+        isOpen={!!deleteId} 
+        onClose={() => setDeleteId(null)} 
+        onConfirm={async () => {
+            if (!deleteId) return;
+            try { 
+                setTasks(prev => prev.filter(t => t.id !== deleteId)); // Optimistic delete
+                await tasksApi.delete(deleteId); 
+                showToast("Milestone purged from registry", "success");
+            } catch (e) { 
+                showToast("Purge action failed", "error");
+                fetchData();
+            }
+            setDeleteId(null);
+        }} 
+        title="Archive Milestone" 
+        message="Are you sure you want to permanently remove this objective from the tactical timeline?"
       />
     </div>
   );
